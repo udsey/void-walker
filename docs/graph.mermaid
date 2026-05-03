@@ -1,0 +1,49 @@
+flowchart TD
+    A[initialize_session] --> B[decide_to_open]
+
+    B -->|no| C[explain_decision]
+    C --> EXIT
+
+    B -->|yes| D[open_browser]
+    D --> E[observe_available_elements]
+    E --> E_S[summarize]
+    E_S --> G{forget_outstanding\nrandom chance}
+    G --> H[select_action]
+
+    H -->|read messages| RV[read_visible_messages]
+    RV --> F[select_outstanding]
+    F --> F_S[summarize]
+    F_S --> G
+
+    H -->|send message| I[send_message]
+    H -->|respond| J[respond_to_message]
+    H -->|explore| K[press_explore]
+    H -->|move| L[move_around]
+    H -->|open window| M[open_window]
+    H -->|share| N[press_share]
+    H -->|invite friend| O[invite_friend]
+    H -->|notify friend| P[notify_friend]
+    H -->|write feedback| Q[write_feedback]
+    H -->|exit| EXIT
+
+    I --> I_S[summarize]
+    J --> J_S[summarize]
+    K --> K_S[summarize]
+    L --> L_S[summarize]
+    M --> M_S[summarize]
+    N --> N_S[summarize]
+    O --> O_S[summarize]
+    P --> P_S[summarize]
+    Q --> Q_S[summarize]
+
+    I_S --> G
+    J_S --> G
+    K_S --> G
+    L_S --> G
+    M_S --> G
+    N_S --> G
+    O_S --> G
+    P_S --> G
+    Q_S --> G
+
+    EXIT([exit_site])
