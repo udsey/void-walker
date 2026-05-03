@@ -1,0 +1,54 @@
+root_url: https://void-cast.fly.dev/
+status_config:
+  check_available_modals:
+    on_fail: Failed
+    on_success: OK
+  clear_input:
+    on_fail: Failed
+    on_success: OK
+  close_browser:
+    on_fail: Failed
+    on_success: OK
+  close_modal:
+    on_fail: Failed
+    on_success: OK
+  configure_chrome:
+    on_fail: Failed
+    on_success: OK
+  input_message:
+    on_fail: Failed
+    on_success: OK
+  interact_with_modal:
+    on_fail: Failed
+    on_success: OK
+  move_around:
+    on_fail: Failed
+    on_success: OK
+  open_modal:
+    on_fail: Failed
+    on_success: OK
+  open_site:
+    on_fail: Failed
+    on_success: OK
+  press_explore:
+    on_fail: Failed
+    on_success: OK
+  press_share:
+    on_fail: Failed
+    on_success: OK
+  press_submit:
+    on_fail: Failed
+    on_success: OK
+  read_modal_content:
+    on_fail: Failed
+    on_success: OK
+  read_visible_messages:
+    on_fail: Failed
+    on_success: OK
+  send_message:
+    on_fail: Failed
+    on_success: OK
+  validate_cast_input:
+    on_fail: Failed
+    on_success: OK
+wait_timeout: 10
