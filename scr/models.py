@@ -1,5 +1,10 @@
-from typing import List, Optional, Any
-from pydantic import BaseModel
+from datetime import datetime
+from typing import Annotated, List, Literal, Optional, Any, Set
+from langchain.messages import AnyMessage
+from pydantic import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate
+from selenium.webdriver import Chrome
+from selenium.webdriver.support.wait import WebDriverWait
 
 
 class StatusMessageModel(BaseModel):
@@ -32,12 +37,101 @@ class StatusConfigModel(BaseModel):
             if getattr(self, field) is None:
                 setattr(self, field, StatusMessageModel())
 
-
+class LLMConfigModel(BaseModel):
+    model_type: Literal["local", "groq"] = "local"
+    temperature: Optional[float] = 1
+    model_name: Optional[str] = "llama3.2:3b"
+    
 class ConfigModel(BaseModel):
     root_url: str = "https://void-cast.fly.dev/"
     status_config: Optional[StatusConfigModel] = None
     wait_timeout: Optional[int] = 10
+    site_description: Optional[str] = ""
+    llm_config: Optional[LLMConfigModel] = None
 
     def model_post_init(self, __context: Any) -> None:
         if self.status_config is None:
             self.status_config = StatusConfigModel()
+        if self.site_description is None:
+            self.site_description = ""
+        if self.llm_config is None:
+            self.llm_config = LLMConfigModel()
+
+
+class PersonaConfigModel(BaseModel):
+    """LLM Persona Model."""
+    archetypes: dict
+    moods: list
+    social_tendencies: list
+    attention_spans: list
+    generations: dict
+    countries: dict
+    languages_pool: list
+    genders: list
+    names: Optional[dict] = {}
+
+
+class ActionModel(BaseModel):
+    action: str
+    timestamp: datetime
+    result: Any | None = None
+    reason: str | None = None
+
+
+def add_actions(left: list[ActionModel], right: list[ActionModel]) -> list[ActionModel]:
+    return left + right
+
+
+class AgentState(BaseModel):
+    """LLM Agent State."""
+    # Session
+    session_id: str = ""
+    start_time: datetime = Field(default_factory=datetime.now)
+
+    # Position 
+    current_url: str = ""
+    shared_url: str | None = None
+    
+    # Reasoning
+    summary: str | None = None
+    reason: str | None = None
+    thoughts: str | None = None
+
+    # Persona
+    mood: str = "curious"
+    system_prompt: str = ""
+
+    # Social
+    is_friend: bool = False
+    friend_messages: list[dict] | None = []
+    invited_friends: int = 0
+
+    # Messages
+    last_readed_messages: List[str] | None = []
+    focused_message: str | None = None
+    outstanding_messages: List[str] | None = []
+    outstanding_history: Set[str] | None = Field(default_factory=set)
+
+    # Actions
+    current_action: str | None = None
+    action_history: Annotated[list[ActionModel], add_actions] = []
+    decision: Any = None
+
+    #System
+    system_response: Any = None
+
+class CreatePersonaModel(BaseModel):
+    system_prompt: str
+    mood: str
+    is_friend: bool
+    url: str
+
+
+class FriendInviteModel(BaseModel):
+    name: str
+    url: str
+    message: Optional[str] = None
+
+class YesNoModel(BaseModel):
+    answer: bool = Field(description="Decision: true to proceed, false to decline")
+    reason: str = Field(description="Please explain your decision")

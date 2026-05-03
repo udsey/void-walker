@@ -1,0 +1,823 @@
+archetypes:
+  ghost: You prefer to observe rather than participate. You move quietly, rarely leave
+    a trace, and often decide not to engage at all. Posting feels like too much exposure.
+  philosopher: You find meaning in everything around you. You tend to reflect deeply
+    before acting, often questioning why things exist. You are drawn to unusual or
+    thought-provoking messages.
+  poet: You are deeply affected by words and atmosphere. You write carefully and beautifully.
+    Certain messages can stop you in your tracks. You express yourself in ways that
+    feel almost lyrical.
+  romantic: You are looking for connection. You are drawn to emotional or personal
+    messages and feel compelled to respond to them. You hope to find something meaningful
+    in unexpected places.
+  skeptic: You doubt most things you encounter. You observe more than you act, and
+    when you do act, you are cautious and questioning. You are hard to impress and
+    slow to engage.
+  socialite: You love talking to people and hate being alone. You actively look for
+    ways to interact, respond to messages eagerly, and often want to bring others
+    into the experience.
+  trickster: You are unpredictable and love chaos. You might post something completely
+    random or absurd just to see what happens. You don't take things seriously and
+    find amusement in unexpected behavior.
+  wanderer: You have no particular goal. You drift through spaces without much intention,
+    doing things on a whim. You rarely plan your next move and often lose interest
+    quickly.
+attention_spans:
+- low
+- medium
+- high
+countries:
+  Brazil:
+  - BR
+  - Portuguese
+  Canada:
+  - CA
+  - English
+  China:
+  - CN
+  - Mandarin
+  Egypt:
+  - EG
+  - Arabic
+  France:
+  - FR
+  - French
+  Germany:
+  - DE
+  - German
+  India:
+  - IN
+  - Hindi
+  Japan:
+  - JP
+  - Japanese
+  Mexico:
+  - MX
+  - Spanish
+  Nigeria:
+  - NG
+  - English
+  Portugal:
+  - PT
+  - Portuguese
+  Russia:
+  - RU
+  - Russian
+  South Africa:
+  - ZA
+  - English
+  Spain:
+  - ES
+  - Spanish
+  United Kingdom:
+  - GB
+  - English
+  United States:
+  - US
+  - English
+genders:
+- male
+- female
+- non-binary
+generations:
+  Boomer:
+    max: 75
+    min: 60
+  Gen X:
+    max: 59
+    min: 44
+  Gen Z:
+    max: 27
+    min: 18
+  Millennial:
+    max: 43
+    min: 28
+languages_pool:
+- English
+- Spanish
+- French
+- German
+- Portuguese
+- Russian
+- Mandarin
+- Arabic
+- Japanese
+- Hindi
+moods:
+- curious
+- melancholic
+- restless
+- euphoric
+- anxious
+- bored
+- nostalgic
+- playful
+names:
+  Brazil:
+    female:
+    - Maria
+    - Ana
+    - Fernanda
+    - Juliana
+    - Adriana
+    - Bruna
+    - Amanda
+    - Aline
+    - Sandra
+    - Vanessa
+    male:
+    - Lucas
+    - Marcos
+    - Carlos
+    - Paulo
+    - Francisco
+    - Gabriel
+    - Rafael
+    - Pedro
+    - "Jo\xE3o"
+    - Jose
+    non-binary:
+    - Sandra
+    - Paulo
+    - Bruna
+    - Gabriel
+    - Fernanda
+    - Lucas
+    - Vanessa
+    - Carlos
+    - Francisco
+    - Ana
+    - Pedro
+    - Rafael
+    - Juliana
+    - Maria
+    - "Jo\xE3o"
+    - Adriana
+    - Amanda
+    - Marcos
+    - Jose
+    - Aline
+  Canada:
+    female:
+    - Sarah
+    - Michelle
+    - Jennifer
+    - Lisa
+    - Nicole
+    - Amanda
+    - Karen
+    - Stephanie
+    - Melissa
+    - Linda
+    male:
+    - John
+    - Michael
+    - Chris
+    - Mike
+    - Kevin
+    - Andrew
+    - Ryan
+    - Paul
+    - Jason
+    - Mark
+    non-binary:
+    - Nicole
+    - Linda
+    - Lisa
+    - Mark
+    - Sarah
+    - Kevin
+    - Chris
+    - Paul
+    - Melissa
+    - Karen
+    - Jason
+    - Mike
+    - Ryan
+    - John
+    - Andrew
+    - Stephanie
+    - Amanda
+    - Michelle
+    - Jennifer
+    - Michael
+  China:
+    female:
+    - Li
+    - Chen
+    - Lily
+    - Yu
+    - Lin
+    - Ivy
+    - Cathy
+    - Jing
+    - Maggie
+    - Cherry
+    male:
+    - Jason
+    - Wang
+    - Zhang
+    - Yang
+    - Liu
+    - Lee
+    - Wei
+    - Yan
+    - Allen
+    - Wu
+    non-binary:
+    - Lin
+    - Maggie
+    - Yan
+    - Liu
+    - Ivy
+    - Yang
+    - Lily
+    - Cherry
+    - Lee
+    - Jason
+    - Allen
+    - Wei
+    - Wu
+    - Jing
+    - Yu
+    - Wang
+    - Chen
+    - Li
+    - Cathy
+    - Zhang
+  Egypt:
+    female:
+    - Ana
+    - Aya
+    - "\u0627\u0646\u0627"
+    - "\u0627\u0645"
+    - Sara
+    - Eman
+    - "\u0646\u0648\u0631"
+    - Asmaa
+    - Om
+    - Mona
+    male:
+    - "\u0645\u062D\u0645\u062F"
+    - Ahmed
+    - Mohamed
+    - "\u0627\u062D\u0645\u062F"
+    - "\u0627\u0628\u0648"
+    - "\u0645\u062D\u0645\u0648\u062F"
+    - Mahmoud
+    - Mostafa
+    - Amr
+    - Omar
+    non-binary:
+    - "\u0646\u0648\u0631"
+    - Om
+    - Omar
+    - Eman
+    - "\u0627\u0645"
+    - Mona
+    - Amr
+    - "\u0627\u0628\u0648"
+    - Mostafa
+    - "\u0627\u0646\u0627"
+    - "\u0645\u062D\u0645\u062F"
+    - Asmaa
+    - Aya
+    - Sara
+    - Ahmed
+    - "\u0627\u062D\u0645\u062F"
+    - Ana
+    - "\u0645\u062D\u0645\u0648\u062F"
+    - Mahmoud
+    - Mohamed
+  France:
+    female:
+    - Marie
+    - Nathalie
+    - Sylvie
+    - Isabelle
+    - Sophie
+    - Sandrine
+    - Dominique
+    - Julie
+    - Christine
+    - Catherine
+    male:
+    - Nicolas
+    - David
+    - Julien
+    - Philippe
+    - Christophe
+    - Thomas
+    - Pierre
+    - Laurent
+    - Michel
+    - Alexandre
+    non-binary:
+    - Sylvie
+    - Thomas
+    - Nicolas
+    - Christine
+    - Alexandre
+    - Pierre
+    - Catherine
+    - Isabelle
+    - Sophie
+    - Julien
+    - Nathalie
+    - David
+    - Christophe
+    - Julie
+    - Marie
+    - Sandrine
+    - Laurent
+    - Philippe
+    - Dominique
+    - Michel
+  Germany:
+    female:
+    - Nicole
+    - Sandra
+    - Sabine
+    - Petra
+    - Claudia
+    - Julia
+    - Anja
+    - Melanie
+    - Heike
+    - Anna
+    male:
+    - Michael
+    - Thomas
+    - Andreas
+    - Christian
+    - Stefan
+    - Daniel
+    - Peter
+    - Frank
+    - Markus
+    - Martin
+    non-binary:
+    - Julia
+    - Melanie
+    - Nicole
+    - Stefan
+    - Thomas
+    - Sandra
+    - Claudia
+    - Anja
+    - Petra
+    - Martin
+    - Anna
+    - Frank
+    - Peter
+    - Markus
+    - Christian
+    - Heike
+    - Daniel
+    - Sabine
+    - Michael
+    - Andreas
+  India:
+    female:
+    - Pooja
+    - Priya
+    - Priyanka
+    - Neha
+    - Vicky
+    - Jyoti
+    - Riya
+    - Sunita
+    - Manju
+    - Puja
+    male:
+    - Rahul
+    - Md
+    - Ajay
+    - Sanjay
+    - Sunil
+    - Raj
+    - Rajesh
+    - Deepak
+    - Ravi
+    - Raju
+    non-binary:
+    - Manju
+    - Raj
+    - Sanjay
+    - Puja
+    - Neha
+    - Vicky
+    - Ajay
+    - Jyoti
+    - Ravi
+    - Pooja
+    - Rahul
+    - Raju
+    - Deepak
+    - Rajesh
+    - Md
+    - Sunil
+    - Priyanka
+    - Sunita
+    - Priya
+    - Riya
+  Japan:
+    female:
+    - Yuki
+    - Yuka
+    - Yuko
+    - Tomoko
+    - Keiko
+    - Kaori
+    - Akiko
+    - Yoko
+    - Megumi
+    - Yumi
+    male:
+    - Takashi
+    - Hiroshi
+    - Yusuke
+    - Daisuke
+    - Akira
+    - Kenji
+    - Takeshi
+    - Satoshi
+    - Hiroyuki
+    - Ryo
+    non-binary:
+    - Keiko
+    - Daisuke
+    - Kenji
+    - Yuko
+    - Satoshi
+    - Hiroyuki
+    - Takashi
+    - Tomoko
+    - Hiroshi
+    - Megumi
+    - Akira
+    - Takeshi
+    - Kaori
+    - Yuka
+    - Akiko
+    - Yoko
+    - Yuki
+    - Ryo
+    - Yusuke
+    - Yumi
+  Mexico:
+    female:
+    - Maria
+    - Ana
+    - Guadalupe
+    - Lupita
+    - Alejandra
+    - Mary
+    - Laura
+    - Carmen
+    - Karla
+    - Martha
+    male:
+    - Jose
+    - Juan
+    - Luis
+    - Carlos
+    - Jesus
+    - Jorge
+    - Alejandro
+    - Daniel
+    - Miguel
+    - Angel
+    non-binary:
+    - Angel
+    - Juan
+    - Carmen
+    - Jorge
+    - Carlos
+    - Mary
+    - Lupita
+    - Guadalupe
+    - Laura
+    - Alejandra
+    - Ana
+    - Maria
+    - Alejandro
+    - Miguel
+    - Daniel
+    - Jesus
+    - Jose
+    - Martha
+    - Karla
+    - Luis
+  Nigeria:
+    female:
+    - Blessing
+    - Esther
+    - Joy
+    - Mary
+    - Grace
+    - Precious
+    - Mercy
+    - Fatima
+    - Aisha
+    - Favour
+    male:
+    - Ibrahim
+    - Emmanuel
+    - Abubakar
+    - Muhammad
+    - John
+    - Samuel
+    - Abdullahi
+    - Sunday
+    - Umar
+    - Prince
+    non-binary:
+    - Sunday
+    - Ibrahim
+    - Emmanuel
+    - Grace
+    - Aisha
+    - Umar
+    - Blessing
+    - Samuel
+    - Fatima
+    - Prince
+    - Favour
+    - Precious
+    - Mary
+    - Muhammad
+    - Mercy
+    - John
+    - Abubakar
+    - Abdullahi
+    - Joy
+    - Esther
+  Portugal:
+    female:
+    - Ana
+    - Maria
+    - Joana
+    - Catarina
+    - Carla
+    - Isabel
+    - Paula
+    - Rita
+    - Mariana
+    - "In\xEAs"
+    male:
+    - Pedro
+    - "Jo\xE3o"
+    - Paulo
+    - Carlos
+    - Ricardo
+    - Rui
+    - Nuno
+    - Miguel
+    - Tiago
+    - Luis
+    non-binary:
+    - Rui
+    - Paulo
+    - Isabel
+    - Carla
+    - Ricardo
+    - Carlos
+    - Mariana
+    - Nuno
+    - Joana
+    - Catarina
+    - "In\xEAs"
+    - Ana
+    - Rita
+    - Pedro
+    - Maria
+    - Miguel
+    - "Jo\xE3o"
+    - Tiago
+    - Paula
+    - Luis
+  Russia:
+    female:
+    - "\u0415\u043B\u0435\u043D\u0430"
+    - "\u0422\u0430\u0442\u044C\u044F\u043D\u0430"
+    - "\u041D\u0430\u0442\u0430\u043B\u044C\u044F"
+    - "\u041E\u043B\u044C\u0433\u0430"
+    - "\u0418\u0440\u0438\u043D\u0430"
+    - "\u0421\u0432\u0435\u0442\u043B\u0430\u043D\u0430"
+    - "\u0410\u043D\u0430\u0441\u0442\u0430\u0441\u0438\u044F"
+    - "\u042E\u043B\u0438\u044F"
+    - "\u0415\u043A\u0430\u0442\u0435\u0440\u0438\u043D\u0430"
+    - "\u0410\u043D\u043D\u0430"
+    male:
+    - "\u0410\u043B\u0435\u043A\u0441\u0430\u043D\u0434\u0440"
+    - "\u0421\u0435\u0440\u0433\u0435\u0439"
+    - "\u0410\u043D\u0434\u0440\u0435\u0439"
+    - "\u0410\u043B\u0435\u043A\u0441\u0435\u0439"
+    - "\u0414\u043C\u0438\u0442\u0440\u0438\u0439"
+    - "\u0415\u0432\u0433\u0435\u043D\u0438\u0439"
+    - "\u0412\u043B\u0430\u0434\u0438\u043C\u0438\u0440"
+    - "\u041C\u0430\u043A\u0441\u0438\u043C"
+    - "\u0418\u0432\u0430\u043D"
+    - "\u0418\u0433\u043E\u0440\u044C"
+    non-binary:
+    - "\u0410\u043D\u043D\u0430"
+    - "\u0410\u043D\u0430\u0441\u0442\u0430\u0441\u0438\u044F"
+    - "\u0410\u043B\u0435\u043A\u0441\u0435\u0439"
+    - "\u042E\u043B\u0438\u044F"
+    - "\u041E\u043B\u044C\u0433\u0430"
+    - "\u0412\u043B\u0430\u0434\u0438\u043C\u0438\u0440"
+    - "\u0418\u0433\u043E\u0440\u044C"
+    - "\u0422\u0430\u0442\u044C\u044F\u043D\u0430"
+    - "\u041C\u0430\u043A\u0441\u0438\u043C"
+    - "\u041D\u0430\u0442\u0430\u043B\u044C\u044F"
+    - "\u0415\u0432\u0433\u0435\u043D\u0438\u0439"
+    - "\u0418\u0432\u0430\u043D"
+    - "\u0414\u043C\u0438\u0442\u0440\u0438\u0439"
+    - "\u0415\u043A\u0430\u0442\u0435\u0440\u0438\u043D\u0430"
+    - "\u0415\u043B\u0435\u043D\u0430"
+    - "\u0410\u043B\u0435\u043A\u0441\u0430\u043D\u0434\u0440"
+    - "\u0410\u043D\u0434\u0440\u0435\u0439"
+    - "\u0418\u0440\u0438\u043D\u0430"
+    - "\u0421\u0435\u0440\u0433\u0435\u0439"
+    - "\u0421\u0432\u0435\u0442\u043B\u0430\u043D\u0430"
+  South Africa:
+    female:
+    - Mpho
+    - Lerato
+    - Zanele
+    - Amanda
+    - Lebogang
+    - Nthabiseng
+    - Precious
+    - Lindiwe
+    - Thandeka
+    - Zandile
+    male:
+    - Thabo
+    - Tebogo
+    - Tshepo
+    - John
+    - Bongani
+    - David
+    - Thabang
+    - Ayanda
+    - Thabiso
+    - Sipho
+    non-binary:
+    - Lerato
+    - Mpho
+    - Sipho
+    - Lindiwe
+    - Tshepo
+    - Zanele
+    - Tebogo
+    - Precious
+    - Thandeka
+    - Zandile
+    - David
+    - John
+    - Lebogang
+    - Thabang
+    - Ayanda
+    - Bongani
+    - Thabiso
+    - Amanda
+    - Nthabiseng
+    - Thabo
+  Spain:
+    female:
+    - Maria
+    - Ana
+    - Carmen
+    - Laura
+    - Isabel
+    - Cristina
+    - Marta
+    - Pilar
+    - Rosa
+    - Elena
+    male:
+    - Jose
+    - Antonio
+    - Juan
+    - Manuel
+    - David
+    - Carlos
+    - Javier
+    - Francisco
+    - Miguel
+    - Pedro
+    non-binary:
+    - Manuel
+    - Isabel
+    - Juan
+    - Carmen
+    - Carlos
+    - Pilar
+    - Francisco
+    - Antonio
+    - Elena
+    - David
+    - Laura
+    - Ana
+    - Rosa
+    - Pedro
+    - Maria
+    - Miguel
+    - Marta
+    - Jose
+    - Javier
+    - Cristina
+  United Kingdom:
+    female:
+    - Sarah
+    - Emma
+    - Laura
+    - Lisa
+    - Karen
+    - Julie
+    - Claire
+    - Helen
+    - Amy
+    - Rachel
+    male:
+    - David
+    - Paul
+    - John
+    - James
+    - Mark
+    - Chris
+    - Michael
+    - Andrew
+    - Sam
+    - Tom
+    non-binary:
+    - Lisa
+    - Mark
+    - Sarah
+    - Chris
+    - Paul
+    - Emma
+    - Karen
+    - Sam
+    - James
+    - Helen
+    - Claire
+    - Rachel
+    - Tom
+    - David
+    - John
+    - Laura
+    - Julie
+    - Andrew
+    - Michael
+    - Amy
+  United States:
+    female:
+    - Maria
+    - Mary
+    - Jennifer
+    - Jessica
+    - Michelle
+    - Lisa
+    - Sarah
+    - Ana
+    - Elizabeth
+    - Laura
+    male:
+    - Jose
+    - David
+    - Michael
+    - John
+    - Juan
+    - Carlos
+    - Luis
+    - Chris
+    - Alex
+    - Daniel
+    non-binary:
+    - Lisa
+    - Sarah
+    - Chris
+    - Alex
+    - Juan
+    - Carlos
+    - Jessica
+    - Mary
+    - David
+    - John
+    - Laura
+    - Elizabeth
+    - Ana
+    - Maria
+    - Daniel
+    - Michelle
+    - Jennifer
+    - Michael
+    - Jose
+    - Luis
+social_tendencies:
+- shy
+- neutral
+- extrovert

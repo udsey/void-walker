@@ -3,6 +3,20 @@ from pydantic import BaseModel
 import yaml
 from dotenv import load_dotenv
 import logging
+from scr.models import PersonaConfigModel, ConfigModel
+
+import logging
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+    handlers=[
+        logging.StreamHandler(),                          # console
+    ]
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("WDM").setLevel(logging.WARNING)
 
 
 logging.basicConfig(
@@ -31,4 +45,7 @@ def save_config(config: BaseModel, filename: str):
 
 BASE_DIR = os.getcwd()
 
-
+persona_config = load_config_file('persona_config.yaml')
+persona_config = PersonaConfigModel(**persona_config)
+config = load_config_file('config.yaml')
+config = ConfigModel(**config)
