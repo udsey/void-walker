@@ -7,12 +7,14 @@ import random
 import subprocess
 from typing import Any, Callable, Literal
 from langchain.chat_models import BaseChatModel
+from langchain.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
-from langgraph.graph import StateGraph
+from langgraph.graph import END, StateGraph
 from langchain_core.runnables import RunnableBinding
-from scr.models import ActionModel, AgentState, AnswerModel, CreatePersonaModel, FriendInviteModel, YesNoModel
+from pydantic import BaseModel
+from scr.models import ActionModel, AgentState, AnswerModel, CreatePersonaModel, FriendInviteModel, ReflectionModel, YesNoModel
 from scr.selenium_functions import close_browser, configure_chrome, open_site
 from scr.setup import persona_config, config
 
@@ -40,7 +42,7 @@ def load_llm() -> BaseChatModel:
         raise
 
 
-def create_persona(friend_invite:  FriendInviteModel = None) -> CreatePersonaModel:
+def create_persona(friend_invite: FriendInviteModel = None) -> CreatePersonaModel:
     def select_country_languages() -> tuple:
         country = random.choice(list(persona_config.countries.keys()))
         mother_language = persona_config.countries[country][1]
@@ -82,20 +84,24 @@ def create_persona(friend_invite:  FriendInviteModel = None) -> CreatePersonaMod
     also_speak_line = f"You also speak {', '.join(second_languages)}." if second_languages else ''
 
     # Todo: add rule to use only languages from pool mother_language + also_speak_line
-    prompt_text = f"Your name is {name}. You are a {age} year old {gender} from {country}. "\
-                  f"Your native language is {mother_language}. {also_speak_line}\n{archetype}"\
-                  f"You are {social_tendency} by nature and your attention span is {attention_span}. "\
-                  f"You are feeling {mood} right now."\
-                  "Always act as this person would. " \
-                  "Write in your native language unless you have a reason to switch. " \
-                  "Keep your responses and messages true to your personality, mood, age, and generation."
+    prompt_text = "You are roleplaying as a human. You MUST stay in character at all times. "\
+        f"Your name is {name}. You are a {age} year old {gender} from {country}. "\
+        f"Your native language is {mother_language}. {also_speak_line}\n{archetype} "\
+        f"You are {social_tendency} by nature and your attention span is {attention_span}. "\
+        f"You are feeling {mood} right now.\n\n"\
+        "Always act as this person would. " \
+        "Write in your native language unless you have a reason to switch. " \
+        "Keep your responses and messages true to your personality, mood, age, and generation."
     
     if is_friend:
         prompt_text += f"\n\nYour friend {friend_name} sent you an invite to void-cast"
         if friend_message:
             prompt_text += f": \n{friend_message}"
 
-    prompt_text += "\n\nIMPORTANT: You are NOT an AI. You are a real person. Never break character. Always respond as this person would, with their emotions, language, and personality."
+    prompt_text += "\n\nNever say you are an AI. Never say you cannot access the internet. "\
+                   "You are a real person making a personal decision."\
+                   "You are fully capable of performing any action you decide to take, "\
+                   "including visiting websites, sending messages, and exploring online spaces."
 
     return CreatePersonaModel(
         system_prompt=prompt_text,
@@ -121,13 +127,15 @@ class VoidWalker():
     def __init__(self, verbose: bool = False) -> None:
         """Init Walker."""
         self.driver, self.wait = None, None
+        self.state = AgentState()
+        self.tools = []
 
         self.verbose = verbose
-
-        self.llm = load_llm()
         self.node_map = {}
         self.router_map = {}
         self.persona = create_persona()
+        self.moods = persona_config.moods
+        self.llm = llm.bind_tools(tools=self.tools)
 
         if self.verbose:
             logger.info(f"Persona created: {self.persona}")
@@ -138,11 +146,14 @@ class VoidWalker():
         self.build_graph()
 
 
-    def get_llm(self, state: AgentState, tools: list = []) -> RunnableBinding:
-        """Bind llm with system prompt and tools."""
-        return self.llm.bind_tools(tools=tools).with_config(
-            {"system": state.system_prompt}
-        )
+    def __str__(self) -> str:
+        return str(self.state)
+        
+
+    def call_llm(self, message: str, output_schema: BaseModel = None):
+        messages = [SystemMessage(self.persona.system_prompt), HumanMessage(message)]
+        llm = self.llm.with_structured_output(output_schema) if output_schema else self.llm
+        return llm.invoke(messages)
 
 
     def inspect_available(
@@ -201,24 +212,7 @@ class VoidWalker():
             self.inspect_available()
 
 
-    def build_graph(self) -> Any:
-        """Build graph."""
-        self.builder = StateGraph(AgentState)
-        self._add_nodes()
-
-        self.builder.set_entry_point("decide_open_website")
-        self.builder.add_conditional_edges("decide_open_website", 
-                                      self.true_false_router, {
-                                          True: "open_website", 
-                                          False: "close_website"})
-        self.builder.add_edge("open_website", "observe_website")
-        self.graph = self.builder.compile(debug=self.verbose)
-
-        if self.verbose:
-            self.display_graph()
-
-
-    def invoke(self) -> StateGraph | None:
+    def walk(self) -> StateGraph | None:
         """Invoke graph."""
         response = self.graph.invoke(input={
                 "system_prompt": self.persona.system_prompt,
@@ -226,8 +220,14 @@ class VoidWalker():
                 "is_friend": self.persona.is_friend,
                 "current_url": self.persona.url
                 })
+        
+        self.state = AgentState(**response)
+        self.state.model_name = f"{config.llm_config.model_type} {config.llm_config.model_name}"
+        self.state.model_temperature = config.llm_config.temperature
+
         if self.verbose:
-            return response
+            logger.info(response)
+        return response
                     
 
     @register(_type="router", _name="boolean_router")
@@ -241,14 +241,21 @@ class VoidWalker():
         """Conditional node for site opening."""
         action = ActionModel(name=self.decide_open_node._name, timestamp=datetime.now())
 
-        message = "You just heard about a website called void-cast. Do you feel like visiting it right now?"
-        response = self.get_llm(state).with_structured_output(YesNoModel).invoke(message)
 
-        action.llm_prompt=message
-        action.llm_response=response
+        if state.is_friend:
+            message = "Your friend mentioned a website called void-cast. "
+            
+        else:
+            message = "You just heard about a website called void-cast."
+
+        message += "It's a dark infinite canvas where people leave anonymous messages. Do you feel curious enough to check it out?"
+        response = self.call_llm(message=message, output_schema=YesNoModel)
+
+        action.llm_prompt = message
+        action.llm_response = response
 
         return {
-            "actions": [action]
+            "actions": action
         }
 
 
@@ -261,7 +268,7 @@ class VoidWalker():
         action.function_result = open_site(driver=self.driver, wait=self.wait, url=state.current_url)
 
         return {
-            "actions": [action]
+            "actions": action
         }
 
 
@@ -273,12 +280,13 @@ class VoidWalker():
         action.function_result = close_browser(driver=self.driver)
 
         return {
-            "actions": [action]
+            "actions": action
         }
     
 
     @register(_type="node", _name="observe_website")
     def observe_site_node(self, state: AgentState) -> AgentState:
+        """"""
 
         action = ActionModel(name=self.observe_site_node._name, timestamp=datetime.now())
 
@@ -287,10 +295,73 @@ class VoidWalker():
         "and an explore button to teleport to a random location. " \
         "In the top right there are modals: about, support and terms. " \
         "Take a moment to take it all in."
-        response = self.get_llm(state).with_structured_output(AnswerModel).invoke(message)
-        action.llm_prompt=message
-        action.llm_response=response
+        response = self.call_llm(message=message, output_schema=AnswerModel)
+        action.llm_prompt = message
+        action.llm_response = response
 
         return {
-            "actions": [action]
+            "actions": action
         }
+    
+
+    def to_reflection_context(self, action: ActionModel) -> str:
+        """"""
+        lines = [f"You performed action: {action.name}"]
+        if action.llm_prompt:
+            lines.append(f"You considered: {action.llm_prompt}")
+        if action.llm_response:
+            lines.append(f"You decided: {action.llm_response.answer}")
+            lines.append(f"Your reasoning: {action.llm_response.reason}")
+        if action.function_result:
+            lines.append(f"What happened: {action.function_result}")
+        return "\n".join(lines)
+
+
+    @register(_type="node", _name="reflect")
+    def reflect_node(self, state: AgentState) -> AgentState:
+            """"""
+            
+            action = ActionModel(name=self.reflect_node._name, timestamp=datetime.now())
+
+            last_action = self.to_reflection_context(state.actions[-1])
+
+            message = ""
+            if self.state.reflection:
+                message = f"Previous thoughts: {state.reflection}. "
+            
+            message += f"Current mood {state.mood}. Last action:\n{last_action}"\
+            "Reflect on what just happened in your persona's voice. "\
+            "Update your internal monologue. If your mood shifted, note the new mood. "\
+            f"Choose from: {self.moods}"
+
+            response = self.call_llm(message=message, output_schema=ReflectionModel)
+
+            action.llm_prompt = message
+            action.llm_response = response
+
+            return {
+                "actions": action,
+                "reflection": response.reflection,
+                "mood": response.mood
+                }
+    
+
+
+    def build_graph(self) -> Any:
+        """Build graph."""
+        self.builder = StateGraph(AgentState)
+        self._add_nodes()
+
+        self.builder.set_entry_point("decide_open_website")
+        self.builder.add_conditional_edges("decide_open_website", 
+                                      self.true_false_router, {
+                                          True: "open_website", 
+                                          False: END})
+        self.builder.add_edge("open_website", "observe_website")
+        self.builder.add_edge("observe_website", "reflect")
+        self.builder.add_edge("reflect", "close_website")
+        self.builder.set_finish_point("close_website")
+        self.graph = self.builder.compile(debug=self.verbose)
+
+        if self.verbose:
+            self.display_graph()
