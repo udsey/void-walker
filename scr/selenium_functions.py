@@ -57,7 +57,7 @@ def close_browser(driver: Remote) -> str:
         return config.status_config.close_browser.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.close_browser.on_
+        return config.status_config.close_browser.on_fail
     
 
 def press_explore(driver: Remote) -> str:
@@ -67,7 +67,7 @@ def press_explore(driver: Remote) -> str:
         return config.status_config.press_explore.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.press_explore.on_
+        return config.status_config.press_explore.on_fail
 
 
 def press_share(driver: Remote) -> str:
@@ -101,7 +101,7 @@ def input_message(driver: Remote, text: str) -> str:
         return config.status_config.input_message.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.input_message.on
+        return config.status_config.input_message.on_fail
     
 
 def press_submit(driver: Remote):
@@ -125,7 +125,7 @@ def validate_cast_input(driver: Remote) -> str:
             return config.status_config.validate_cast_input.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.validate_cast_input.on_
+        return config.status_config.validate_cast_input.on_fail
     
 
 def send_message(driver: Remote, text: str) -> str:
