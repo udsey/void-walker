@@ -1,5 +1,12 @@
+llm_config:
+  model_name: llama3.2:3b
+  model_type: local
+  temperature: 1
 root_url: https://void-cast.fly.dev/
-site_description: 'You can visit a website called void-cast — an infinite canvas where people leave short messages that drift through an endless dark space. Messages appear and disappear as you move around. You can explore, post messages, respond to what you find, or simply watch.'
+site_description: "You can visit a website called void-cast \u2014 an infinite canvas\
+  \ where people leave short messages that drift through an endless dark space. Messages\
+  \ appear and disappear as you move around. You can explore, post messages, respond\
+  \ to what you find, or simply watch."
 status_config:
   check_available_modals:
     on_fail: Failed

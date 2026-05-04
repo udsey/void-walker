@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from selenium.webdriver import Chrome
 from selenium.webdriver.support.wait import WebDriverWait
+import uuid
 
 
 class StatusMessageModel(BaseModel):
@@ -71,21 +72,38 @@ class PersonaConfigModel(BaseModel):
     names: Optional[dict] = {}
 
 
+class YesNoModel(BaseModel):
+    answer: bool = Field(description="Decision: true to proceed, false to decline")
+    reason: str = Field(description="Please explain your decision")
+
+
+class AnswerModel(BaseModel):
+    answer: str = Field(description="The answer or decision made")
+    reason: str = Field(description="The reasoning behind the answer")
+
+
 class ActionModel(BaseModel):
-    action: str
+    name: str
     timestamp: datetime
-    result: Any | None = None
-    reason: str | None = None
+    llm_prompt: str | None = None
+    llm_response: YesNoModel | AnswerModel | None = None
+    function_result: str | None = None
 
 
-def add_actions(left: list[ActionModel], right: list[ActionModel]) -> list[ActionModel]:
-    return left + right
+class FriendMessageModel(BaseModel):
+    name: str
+    message: str
 
+
+class FriendInviteModel(BaseModel):
+    name: str
+    shared_url: str
+    message: str
 
 class AgentState(BaseModel):
     """LLM Agent State."""
     # Session
-    session_id: str = ""
+    session_id: str = Field(default_factory=uuid.uuid1().hex)
     start_time: datetime = Field(default_factory=datetime.now)
 
     # Position 
@@ -94,7 +112,6 @@ class AgentState(BaseModel):
     
     # Reasoning
     summary: str | None = None
-    reason: str | None = None
     thoughts: str | None = None
 
     # Persona
@@ -103,22 +120,19 @@ class AgentState(BaseModel):
 
     # Social
     is_friend: bool = False
-    friend_messages: list[dict] | None = []
-    invited_friends: int = 0
+    friend_messages: list[FriendMessageModel] = []
+    invited_friends: list[FriendInviteModel] = []
 
     # Messages
-    last_readed_messages: List[str] | None = []
+    last_read_messages: List[str] = []
     focused_message: str | None = None
-    outstanding_messages: List[str] | None = []
+    outstanding_messages: List[str] = []
     outstanding_history: Set[str] | None = Field(default_factory=set)
 
     # Actions
-    current_action: str | None = None
-    action_history: Annotated[list[ActionModel], add_actions] = []
-    decision: Any = None
+    actions: list[ActionModel] = []
 
-    #System
-    system_response: Any = None
+
 
 class CreatePersonaModel(BaseModel):
     system_prompt: str
@@ -132,6 +146,3 @@ class FriendInviteModel(BaseModel):
     url: str
     message: Optional[str] = None
 
-class YesNoModel(BaseModel):
-    answer: bool = Field(description="Decision: true to proceed, false to decline")
-    reason: str = Field(description="Please explain your decision")

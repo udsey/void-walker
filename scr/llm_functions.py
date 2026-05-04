@@ -1,13 +1,19 @@
 
+from datetime import datetime
+from inspect import signature
+import inspect
 import logging
 import random
-
+import subprocess
+from typing import Any, Callable, Literal
 from langchain.chat_models import BaseChatModel
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_ollama import ChatOllama
-
-from scr.models import CreatePersonaModel, FriendInviteModel
+from langgraph.graph import StateGraph
+from langchain_core.runnables import RunnableBinding
+from scr.models import ActionModel, AgentState, AnswerModel, CreatePersonaModel, FriendInviteModel, YesNoModel
+from scr.selenium_functions import close_browser, configure_chrome, open_site
 from scr.setup import persona_config, config
 
 logger = logging.getLogger(__name__)
@@ -26,13 +32,12 @@ def load_llm() -> BaseChatModel:
         )
     elif model_type == "local":
         return ChatOllama(
-            model="llama3:latest",
+            model=config.llm_config.model_name, 
             temperature=config.llm_config.temperature
         )
     else:
         logger.error(f"Unknown model type: '{model_type}'. Expected 'groq' or 'local'.")
         raise
-
 
 
 def create_persona(friend_invite:  FriendInviteModel = None) -> CreatePersonaModel:
@@ -71,10 +76,9 @@ def create_persona(friend_invite:  FriendInviteModel = None) -> CreatePersonaMod
         is_friend = True
         friend_name = friend_invite.name
         friend_message = friend_invite.message
-        url = friend_invite.url
+        url = friend_invite.shared_url
 
 
-    friend_line = ""
     also_speak_line = f"You also speak {','.join(second_languages)}." if second_languages else ''
 
     prompt_text = f"""Your name is {name}. You are a {age} year old {gender} from {country}.
@@ -102,7 +106,180 @@ Always act as this person would. Write in your native language unless you have a
     )
 
 
+def register(_name: str, _type: Literal["node", "router"]):
+        """Wrapper to add attributes to method."""
+        def decorator(func: Callable):
+            func._name = _name
+            func._type = _type
+            return func
+        return decorator
+
+llm = load_llm()
+
+class VoidWalker():
+    """Void Walker."""
+
+    def __init__(self, verbose: bool = False) -> None:
+        """Init Walker."""
+        self.driver, self.wait = None, None
 
 
-        
+        self.llm = load_llm()
+        self.node_map = {}
+        self.router_map = {}
+        self.persona = create_persona()
 
+        if verbose:
+            print(f"Persona created: {self.persona}")
+
+        self.node_map = self.create_map("node")
+        self.router_map = self.create_map("router")
+
+        self.build_graph(verbose=verbose)
+
+
+
+
+    def inspect_available(
+            self,
+            state_name: str = "state", 
+            ignore_state: bool = False) -> None:
+        """Print available nodes, routers, etc."""
+
+        print("Available nodes:\n")
+        for key, val in self.builder.nodes.items():
+            func_name = val.runnable.func.__name__
+            params = [str(v) for v in signature(val.runnable.func).parameters.values()]
+            if ignore_state:
+                params = filter(lambda x: x.split(':')[0].strip() != state_name, params)
+            print(f" — node: {key}, function: {func_name}({', '.join(params)})\n")
+
+        print("Available routers:\n")
+        for key, val in self.create_map("router").items():
+            params = [str(v) for v in signature(val).parameters.values()]
+            if ignore_state:
+                params = filter(lambda x: x.split(':')[0].strip() != state_name, params)
+            print(f" — router: {key}, function: {val.__name__}({', '.join(params)})\n")
+
+
+    def display_graph(self) -> None:
+        mermaid_text = self.graph.get_graph().draw_mermaid()
+        try:
+            from IPython import get_ipython
+            if get_ipython() is not None:
+                from IPython.display import Image, display
+                display(Image(self.graph.get_graph().draw_mermaid_png()))
+                return
+        except ImportError:
+            pass
+        result = subprocess.run(['mermaid-ascii', '-f', '-'], input=mermaid_text, capture_output=True, text=True)
+        print(result.stdout)
+
+    def create_map(self, _type: str) -> dict:
+        func_map = {
+            getattr(method, '_name'): getattr(self, name)
+            for name, method
+            in inspect.getmembers(self, predicate=inspect.ismethod)
+            if hasattr(method, '_type') and getattr(method, '_type') == _type
+        }
+        return func_map
+
+    
+    @register(_type="router", _name="boolean_router")
+    def true_false_router(self, state: AgentState) -> bool:
+        """Router for True/False decisions."""
+        return state.actions[-1].llm_response
+
+
+    @register(_type="node", _name="decide_open_website")
+    def decide_open_node(self, state: AgentState) -> AgentState:
+        """Conditional node for site opening."""
+        action = ActionModel(name=self.decide_open_node._name, timestamp=datetime.now())
+
+        message = "You just heard about a website called void-cast. Do you feel like visiting it right now?"
+        response = self.get_llm(state).with_structured_output(YesNoModel).invoke(message)
+
+        action.llm_prompt=message
+        action.llm_response=response
+
+        state.actions.append(action)
+        return state
+
+
+    @register(_type="node", _name="open_website")
+    def open_site_node(self, state: AgentState) -> AgentState:
+        """Node to open website."""
+        self.driver, self.wait = configure_chrome()
+        action = ActionModel(name=self.open_site_node._name, timestamp=datetime.now())
+
+        action.function_result = open_site(driver=self.driver, wait=self.wait, url=state.current_url)
+
+        state.actions.append(action)
+        return state
+
+
+    @register(_type="node", _name="close_website")
+    def close_website_node(self, state: AgentState) -> AgentState:
+        """Node to close website."""
+        action = ActionModel(name=self.close_website_node._name, timestamp=datetime.now())
+
+        action.function_result = close_browser(driver=self.driver)
+
+        state.actions.append(action)
+        return state
+    
+
+    @register(_type="node", _name="observe_website")
+    def observe_site_node(self, state: AgentState) -> AgentState:
+
+        action = ActionModel(name=self.observe_site_node._name, timestamp=datetime.now())
+
+        message = "You just opened void-cast. You see a dark infinite canvas with messages drifting through it. " \
+        "At the bottom you have an input bar to cast messages into the void, a share button, " \
+        "and an explore button to teleport to a random location. " \
+        "In the top right there are modals: about, support and terms. " \
+        "Take a moment to take it all in."
+        response = self.get_llm(state).with_structured_output(AnswerModel).invoke(message)
+        action.llm_prompt=message
+        action.llm_response=response
+
+        state.actions.append(action)
+        return state
+
+
+    def _add_nodes(self, verbose: bool):
+        """Add nodes to builder."""
+        for name, func in self.node_map.items():
+            self.builder.add_node(name, func)
+        if verbose:
+            self.inspect_available()
+
+
+    def build_graph(self, verbose: bool) -> Any:
+        """Build graph."""
+        self.builder = StateGraph(AgentState)
+        self._add_nodes(verbose=verbose)
+
+        self.builder.set_entry_point("decide_open_website")
+        self.builder.add_conditional_edges("decide_open_website", 
+                                      self.true_false_router, {
+                                          True: "open_website", 
+                                          False: "close_website"})
+        self.builder.add_edge("open_website", "observe_website")
+        self.graph = self.builder.compile()
+
+        if verbose:
+            self.display_graph()
+
+
+    def invoke(self, verbose: bool) -> StateGraph | None:
+        """Invoke graph."""
+        response = self.graph.invoke(input={
+                "system_prompt": self.persona.system_prompt,
+                "mood": self.persona.mood,
+                "is_friend": self.persona.is_friend,
+                "current_url": self.persona.url
+                })
+        if verbose:
+            return response
+                    
