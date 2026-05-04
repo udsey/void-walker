@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, List, Literal, Optional, Any, Set
 from langchain.messages import AnyMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from langchain_core.prompts import ChatPromptTemplate
 from selenium.webdriver import Chrome
 from selenium.webdriver.support.wait import WebDriverWait
@@ -100,10 +100,38 @@ class FriendInviteModel(BaseModel):
     shared_url: str
     message: str
 
+class CreatePersonaModel(BaseModel):
+    system_prompt: str
+    mood: str
+    is_friend: bool
+    url: str
+
+    def __str__(self) -> str:
+        import textwrap
+        lines = self.system_prompt.split('\n')
+        header = '\n'.join(lines[:6])
+        wrapped = textwrap.fill(header, width=80, break_long_words=False, break_on_hyphens=False)
+        return f"\n\n{wrapped}\nMood: {self.mood}\nFriend: {self.is_friend}\nURL: {self.url}\n\n"
+
+class FriendInviteModel(BaseModel):
+    name: str
+    url: str
+    message: Optional[str] = None
+
+
+def add_actions(left: list[ActionModel], right: list[ActionModel] | ActionModel | dict) -> list[ActionModel]:
+    """Reducer to add new actions."""
+    if isinstance(right, dict):
+        right = ActionModel(**right)
+    if isinstance(right, list):
+        return left + [ActionModel(**r) if isinstance(r, dict) else r for r in right]
+    return left + [right]
+
 class AgentState(BaseModel):
     """LLM Agent State."""
+
     # Session
-    session_id: str = Field(default_factory=uuid.uuid1().hex)
+    session_id: str = Field(default_factory=lambda: uuid.uuid1().hex)
     start_time: datetime = Field(default_factory=datetime.now)
 
     # Position 
@@ -130,19 +158,4 @@ class AgentState(BaseModel):
     outstanding_history: Set[str] | None = Field(default_factory=set)
 
     # Actions
-    actions: list[ActionModel] = []
-
-
-
-class CreatePersonaModel(BaseModel):
-    system_prompt: str
-    mood: str
-    is_friend: bool
-    url: str
-
-
-class FriendInviteModel(BaseModel):
-    name: str
-    url: str
-    message: Optional[str] = None
-
+    actions: Annotated[list[Any], add_actions] = []

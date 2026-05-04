@@ -79,18 +79,17 @@ def create_persona(friend_invite:  FriendInviteModel = None) -> CreatePersonaMod
         url = friend_invite.shared_url
 
 
-    also_speak_line = f"You also speak {','.join(second_languages)}." if second_languages else ''
+    also_speak_line = f"You also speak {', '.join(second_languages)}." if second_languages else ''
 
-    prompt_text = f"""Your name is {name}. You are a {age} year old {gender} from {country}.
-Your native language is {mother_language}.
-{also_speak_line}
-
-{archetype}
-
-You are {social_tendency} by nature and your attention span is {attention_span}.
-You are feeling {mood} right now.
-Always act as this person would. Write in your native language unless you have a reason to switch. Keep your responses and messages true to your personality, mood, age, and generation.
-"""
+    # Todo: add rule to use only languages from pool mother_language + also_speak_line
+    prompt_text = f"Your name is {name}. You are a {age} year old {gender} from {country}. "\
+                  f"Your native language is {mother_language}. {also_speak_line}\n{archetype}"\
+                  f"You are {social_tendency} by nature and your attention span is {attention_span}. "\
+                  f"You are feeling {mood} right now."\
+                  "Always act as this person would. " \
+                  "Write in your native language unless you have a reason to switch. " \
+                  "Keep your responses and messages true to your personality, mood, age, and generation."
+    
     if is_friend:
         prompt_text += f"\n\nYour friend {friend_name} sent you an invite to void-cast"
         if friend_message:
@@ -123,43 +122,49 @@ class VoidWalker():
         """Init Walker."""
         self.driver, self.wait = None, None
 
+        self.verbose = verbose
 
         self.llm = load_llm()
         self.node_map = {}
         self.router_map = {}
         self.persona = create_persona()
 
-        if verbose:
-            print(f"Persona created: {self.persona}")
+        if self.verbose:
+            logger.info(f"Persona created: {self.persona}")
 
         self.node_map = self.create_map("node")
         self.router_map = self.create_map("router")
 
-        self.build_graph(verbose=verbose)
+        self.build_graph()
 
 
+    def get_llm(self, state: AgentState, tools: list = []) -> RunnableBinding:
+        """Bind llm with system prompt and tools."""
+        return self.llm.bind_tools(tools=tools).with_config(
+            {"system": state.system_prompt}
+        )
 
 
     def inspect_available(
             self,
             state_name: str = "state", 
             ignore_state: bool = False) -> None:
-        """Print available nodes, routers, etc."""
+        """Return available nodes, routers, etc."""
 
-        print("Available nodes:\n")
+        logger.info("Available nodes:")
         for key, val in self.builder.nodes.items():
             func_name = val.runnable.func.__name__
             params = [str(v) for v in signature(val.runnable.func).parameters.values()]
             if ignore_state:
                 params = filter(lambda x: x.split(':')[0].strip() != state_name, params)
-            print(f" — node: {key}, function: {func_name}({', '.join(params)})\n")
+            logger.info(f"\t— node: {key}, function: {func_name}({', '.join(params)})")
 
-        print("Available routers:\n")
+        logger.info("Available routers:")
         for key, val in self.create_map("router").items():
             params = [str(v) for v in signature(val).parameters.values()]
             if ignore_state:
                 params = filter(lambda x: x.split(':')[0].strip() != state_name, params)
-            print(f" — router: {key}, function: {val.__name__}({', '.join(params)})\n")
+            logger.info(f"\t— router: {key}, function: {val.__name__}({', '.join(params)})")
 
 
     def display_graph(self) -> None:
@@ -173,22 +178,62 @@ class VoidWalker():
         except ImportError:
             pass
         result = subprocess.run(['mermaid-ascii', '-f', '-'], input=mermaid_text, capture_output=True, text=True)
-        print(result.stdout)
+        logger.info(result.stdout)
+
 
     def create_map(self, _type: str) -> dict:
-        func_map = {
-            getattr(method, '_name'): getattr(self, name)
-            for name, method
-            in inspect.getmembers(self, predicate=inspect.ismethod)
-            if hasattr(method, '_type') and getattr(method, '_type') == _type
-        }
+        func_map = {}
+        for name in dir(self):
+            try:
+                method = getattr(self, name)
+                if callable(method) and hasattr(method, '_type') and getattr(method, '_type') == _type:
+                    func_map[getattr(method, '_name')] = method
+            except Exception:
+                continue
         return func_map
-
     
+
+    def _add_nodes(self) -> None:
+        """Add nodes to builder."""
+        for name, func in self.node_map.items():
+            self.builder.add_node(name, func)
+        if self.verbose:
+            self.inspect_available()
+
+
+    def build_graph(self) -> Any:
+        """Build graph."""
+        self.builder = StateGraph(AgentState)
+        self._add_nodes()
+
+        self.builder.set_entry_point("decide_open_website")
+        self.builder.add_conditional_edges("decide_open_website", 
+                                      self.true_false_router, {
+                                          True: "open_website", 
+                                          False: "close_website"})
+        self.builder.add_edge("open_website", "observe_website")
+        self.graph = self.builder.compile(debug=self.verbose)
+
+        if self.verbose:
+            self.display_graph()
+
+
+    def invoke(self) -> StateGraph | None:
+        """Invoke graph."""
+        response = self.graph.invoke(input={
+                "system_prompt": self.persona.system_prompt,
+                "mood": self.persona.mood,
+                "is_friend": self.persona.is_friend,
+                "current_url": self.persona.url
+                })
+        if self.verbose:
+            return response
+                    
+
     @register(_type="router", _name="boolean_router")
     def true_false_router(self, state: AgentState) -> bool:
         """Router for True/False decisions."""
-        return state.actions[-1].llm_response
+        return state.actions[-1].llm_response.answer
 
 
     @register(_type="node", _name="decide_open_website")
@@ -202,8 +247,9 @@ class VoidWalker():
         action.llm_prompt=message
         action.llm_response=response
 
-        state.actions.append(action)
-        return state
+        return {
+            "actions": [action]
+        }
 
 
     @register(_type="node", _name="open_website")
@@ -214,8 +260,9 @@ class VoidWalker():
 
         action.function_result = open_site(driver=self.driver, wait=self.wait, url=state.current_url)
 
-        state.actions.append(action)
-        return state
+        return {
+            "actions": [action]
+        }
 
 
     @register(_type="node", _name="close_website")
@@ -225,8 +272,9 @@ class VoidWalker():
 
         action.function_result = close_browser(driver=self.driver)
 
-        state.actions.append(action)
-        return state
+        return {
+            "actions": [action]
+        }
     
 
     @register(_type="node", _name="observe_website")
@@ -243,43 +291,6 @@ class VoidWalker():
         action.llm_prompt=message
         action.llm_response=response
 
-        state.actions.append(action)
-        return state
-
-
-    def _add_nodes(self, verbose: bool):
-        """Add nodes to builder."""
-        for name, func in self.node_map.items():
-            self.builder.add_node(name, func)
-        if verbose:
-            self.inspect_available()
-
-
-    def build_graph(self, verbose: bool) -> Any:
-        """Build graph."""
-        self.builder = StateGraph(AgentState)
-        self._add_nodes(verbose=verbose)
-
-        self.builder.set_entry_point("decide_open_website")
-        self.builder.add_conditional_edges("decide_open_website", 
-                                      self.true_false_router, {
-                                          True: "open_website", 
-                                          False: "close_website"})
-        self.builder.add_edge("open_website", "observe_website")
-        self.graph = self.builder.compile()
-
-        if verbose:
-            self.display_graph()
-
-
-    def invoke(self, verbose: bool) -> StateGraph | None:
-        """Invoke graph."""
-        response = self.graph.invoke(input={
-                "system_prompt": self.persona.system_prompt,
-                "mood": self.persona.mood,
-                "is_friend": self.persona.is_friend,
-                "current_url": self.persona.url
-                })
-        if verbose:
-            return response
-                    
+        return {
+            "actions": [action]
+        }
