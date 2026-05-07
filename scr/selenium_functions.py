@@ -130,13 +130,13 @@ def validate_cast_input(driver: Remote) -> str:
 
 def send_message(driver: Remote, text: str) -> str:
     try:
-        response = clear_input(driver=driver, config=config)
-        response = input_message(driver=driver, config=config, text=text)
-        response = press_submit(driver=driver, config=config)
-        response = validate_cast_input(driver=driver, config=config)
+        response = clear_input(driver=driver)
+        response = input_message(driver=driver, text=text)
+        response = press_submit(driver=driver)
+        response = validate_cast_input(driver=driver)
         if response == config.status_config.validate_cast_input.on_success:
             return config.status_config.send_message.on_success
-        return response
+        return f"{config.status_config.send_message.on_fail}: {response}"
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.send_message.on_fail
@@ -161,7 +161,7 @@ def read_visible_messages(driver: Remote) -> List[str]:
                 })
                 .map(el => el.textContent);
         """)
-        return '\n'.join([f'message: {m}' for m in messages])
+        return messages
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.read_visible_messages.on_fail
@@ -171,7 +171,7 @@ def check_available_modals(driver: Remote) -> str:
     try:
         nav_element = driver.find_element(by=By.TAG_NAME, value='nav')
         modal_elements = nav_element.find_elements(by=By.XPATH, value='./*')
-        return '\n'.join([f"modal: {m.text}" for m in modal_elements])
+        return [m.text for m in modal_elements]
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.check_available_modals.on_fail
@@ -211,9 +211,9 @@ def read_modal_content(driver: Remote) -> str:
 
 def interact_with_modal(driver: Remote, modal_name: str) -> str:
     try:
-        response = open_modal(driver=driver, config=config, modal_name=modal_name)
-        content = read_modal_content(driver=driver, config=config)
-        response = close_modal(driver=driver, config=config)
+        response = open_modal(driver=driver, modal_name=modal_name)
+        content = read_modal_content(driver=driver)
+        response = close_modal(driver=driver)
         if content == config.status_config.read_modal_content.on_fail:
             return config.status_config.interact_with_modal.on_fail
         return content

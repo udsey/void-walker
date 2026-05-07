@@ -90,6 +90,15 @@ class AnswerModel(BaseModel):
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+class SelectToolModel(BaseModel):
+    answer: str = Field(description="Next action:")
+    reason: str = Field(description="The reasoning behind the answer")
+
+    def __str__(self) -> str:
+        space = " " * 14
+        return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
+
 
 
 class ReflectionModel(BaseModel):
@@ -100,6 +109,14 @@ class ReflectionModel(BaseModel):
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+
+class SelectOutstandingModel(BaseModel):
+    messages: list = Field(description="Select outstanding messages based on your mood.")
+    reason: str = Field(description="The reasoning behind the answer")
+
+    def __str__(self) -> str:
+        space = " " * 14
+        return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
 
 class ActionModel(BaseModel):
@@ -147,10 +164,10 @@ class CreatePersonaModel(BaseModel):
         return f"\n\n{wrapped}\nMood: {self.mood}\nFriend: {self.is_friend}\nURL: {self.url}\n\n"
 
 
-class FriendInviteModel(BaseModel):
-    name: str
-    url: str
-    message: Optional[str] = None
+class SentMessageModel(BaseModel):
+    message: str
+    reply_to: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.now)
 
 
 def add_actions(left: list[ActionModel], right: list[ActionModel] | ActionModel) -> list[ActionModel]:
@@ -159,6 +176,20 @@ def add_actions(left: list[ActionModel], right: list[ActionModel] | ActionModel)
         return left + right
     return left + [right]
 
+def append_str(left: list[str], right: str | list[str]) -> list[str]:
+    if right is None:
+        return left
+    if isinstance(right, str):
+        return left + [right]
+    return left + right
+
+
+def append_message(left: list[SentMessageModel], right: SentMessageModel | None) -> list[SentMessageModel]:
+    if right is None or not right.message:
+        return left
+    return left + [right]
+
+
 
 class AgentState(BaseModel):
     """LLM Agent State."""
@@ -166,6 +197,7 @@ class AgentState(BaseModel):
     # Session
     session_id: str = Field(default_factory=lambda: uuid.uuid1().hex)
     start_time: datetime = Field(default_factory=datetime.now)
+    end_time: Optional[datetime] = None
     model_name: str | None = None
     model_temperature: float | None = None
 
@@ -174,8 +206,10 @@ class AgentState(BaseModel):
     shared_url: str | None = None
     
     # Reasoning
+    exit_reason: Optional[str] = None
     summary: str | None = None
     reflection: str | None = None
+    feedback: Annotated[list[str], append_str] = []
 
     # Persona
     mood: str = "curious"
@@ -187,6 +221,7 @@ class AgentState(BaseModel):
     invited_friends: list[FriendInviteModel] = []
 
     # Messages
+    sent_messages: Annotated[list[SentMessageModel], append_message] = []
     last_read_messages: List[str] = []
     focused_message: str | None = None
     outstanding_messages: List[str] = []
@@ -194,6 +229,7 @@ class AgentState(BaseModel):
 
     # Actions
     actions: Annotated[list[ActionModel], add_actions] = []
+    opened_windows: Annotated[list[str], append_str] = []
 
     def __str__(self) -> str:
         lines = []
@@ -215,5 +251,19 @@ class AgentState(BaseModel):
     @classmethod
     def validate_actions(cls, v) -> list:
         return [ActionModel(**a) if isinstance(a, dict) else a for a in v]
+    
 
+class ToolOutputModel(BaseModel):
+    reply_to: Optional[str] = None
+    message: Optional[str] = None
+    tool_message: Optional[str] = None
+    visible_messages: Optional[List[str]] = []
+    window: Optional[str] = None
+    friend_invite: Optional[FriendInviteModel] = None
+    feedback: Optional[str] = None
 
+    def to_sent_message(self) -> SentMessageModel | None:
+        if not self.message:
+            return None
+        return SentMessageModel(message=self.message, 
+                                reply_to=self.reply_to)

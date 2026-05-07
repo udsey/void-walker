@@ -1,7 +1,7 @@
 llm_config:
-  model_name: llama3.2:3b
-  model_type: local
-  temperature: 1
+  model_name: llama-3.3-70b-versatile #qwen2.5:7b
+  model_type: groq #local
+  temperature: 0.6
 root_url: https://void-cast.fly.dev/
 site_description: ''
 status_config:
@@ -28,7 +28,7 @@ status_config:
     on_success: OK
   move_around:
     on_fail: Failed
-    on_success: OK
+    on_success: You moved to a new place in void!
   open_modal:
     on_fail: Failed
     on_success: OK
@@ -37,7 +37,7 @@ status_config:
     on_success: OK
   press_explore:
     on_fail: Failed
-    on_success: OK
+    on_success: You just teleported to a new place!
   press_share:
     on_fail: Failed
     on_success: OK
@@ -52,7 +52,7 @@ status_config:
     on_success: OK
   send_message:
     on_fail: Failed
-    on_success: OK
+    on_success: Your message was sent to the void!
   validate_cast_input:
     on_fail: Failed
     on_success: OK
