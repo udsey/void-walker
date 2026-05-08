@@ -147,7 +147,8 @@ class FriendMessageModel(BaseModel):
 
 
 class FriendInviteModel(BaseModel):
-    name: str
+    name: Optional[str] = None
+    friends_name: Optional[str] = None
     shared_url: str
     message: str
 
@@ -190,6 +191,12 @@ def append_message(left: list[SentMessageModel], right: SentMessageModel | None)
     return left + [right]
 
 
+def append_friend(left: list[FriendInviteModel], right: FriendInviteModel | None) -> list[FriendInviteModel]:
+    if right is None:
+        return left
+    return left + [right]
+
+
 
 class AgentState(BaseModel):
     """LLM Agent State."""
@@ -212,13 +219,14 @@ class AgentState(BaseModel):
     feedback: Annotated[list[str], append_str] = []
 
     # Persona
+    name: Optional[str] = None
     mood: str = "curious"
     system_prompt: str = ""
 
     # Social
     is_friend: bool = False
     friend_messages: list[FriendMessageModel] = []
-    invited_friends: list[FriendInviteModel] = []
+    invited_friends: Annotated[list[FriendInviteModel], append_friend] = []
 
     # Messages
     sent_messages: Annotated[list[SentMessageModel], append_message] = []
@@ -267,3 +275,11 @@ class ToolOutputModel(BaseModel):
             return None
         return SentMessageModel(message=self.message, 
                                 reply_to=self.reply_to)
+    
+    
+    def to_friend_invite(self) -> FriendInviteModel | None:
+        if not self.friend_invite:
+            return None
+        return self.friend_invite 
+    
+    

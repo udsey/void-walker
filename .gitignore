@@ -3,3 +3,4 @@
 !.gitignore
 docs/
 __pycache__
+/data

@@ -4,7 +4,8 @@ from inspect import signature
 import logging
 import random
 import subprocess
-from typing import Annotated, Any, Callable, List, Literal
+import threading
+from typing import Annotated, Any, Callable, List, Literal, Optional
 from langchain_core.tools.structured import StructuredTool
 from langchain.chat_models import BaseChatModel
 from langchain.messages import HumanMessage, SystemMessage
@@ -90,11 +91,11 @@ def create_persona(friend_invite: FriendInviteModel = None) -> CreatePersonaMode
         friend_name = friend_invite.name
         friend_message = friend_invite.message
         url = friend_invite.shared_url
+        name = friend_invite.friends_name
 
 
     also_speak_line = f"You also speak {', '.join(second_languages)}." if second_languages else ''
 
-    # Todo: add rule to use only languages from pool mother_language + also_speak_line
     prompt_text = "You are roleplaying as a human. You MUST stay in character at all times. "\
         f"Your name is {name}. You are a {age} year old {gender} from {country}. "\
         f"Your native language is {mother_language}. {also_speak_line}\n{archetype} "\
@@ -119,7 +120,7 @@ def create_persona(friend_invite: FriendInviteModel = None) -> CreatePersonaMode
         mood=mood,
         is_friend=is_friend,
         url=url 
-    )
+    ), name
 
 
 def register(_name: str, _type: Literal["node", "router", "tool"]):
@@ -145,13 +146,17 @@ def create_map(target, _type: str) -> dict:
 
 
 llm = load_llm()
+_active_walkers = threading.Semaphore(5)
 
 class VoidWalker():
     """Void Walker."""
 
-    def __init__(self, verbose: bool = False, 
+    def __init__(self, 
+                 friend_invite: Optional[FriendInviteModel] = None,
+                 verbose: bool = False, 
                  time_limit_min: int = 10,
-                 actions_limit: int = 50) -> None:
+                 actions_limit: int = 50,
+                 friends_limit: int = 2) -> None:
         """Init Walker."""
         self.driver, self.wait = None, None
         self.state = AgentState()
@@ -159,11 +164,12 @@ class VoidWalker():
 
         self.time_limit_min = time_limit_min
         self.actions_limit = actions_limit
+        self.friends_limit = friends_limit
 
         self.verbose = verbose
         self.node_map = {}
         self.router_map = {}
-        self.persona = create_persona()
+        self.persona, self.state.name = create_persona(friend_invite=friend_invite)
         self.moods = persona_config.moods
         self.llm = llm.bind_tools(tools=self.tools)
 
@@ -246,20 +252,21 @@ class VoidWalker():
 
     def walk(self) -> StateGraph | None:
         """Invoke graph."""
-        response = self.graph.invoke(input={
-                "system_prompt": self.persona.system_prompt,
-                "mood": self.persona.mood,
-                "is_friend": self.persona.is_friend,
-                "current_url": self.persona.url
-                })
-        
-        self.state = AgentState(**response)
-        self.state.model_name = f"{config.llm_config.model_type} {config.llm_config.model_name}"
-        self.state.model_temperature = config.llm_config.temperature
+        with _active_walkers:
+            response = self.graph.invoke(input={
+                    "system_prompt": self.persona.system_prompt,
+                    "mood": self.persona.mood,
+                    "is_friend": self.persona.is_friend,
+                    "current_url": self.persona.url
+                    })
+            
+            self.state = AgentState(**response)
+            self.state.model_name = f"{config.llm_config.model_type} {config.llm_config.model_name}"
+            self.state.model_temperature = config.llm_config.temperature
 
-        if self.verbose:
-            logger.info(response)
-        return response
+            if self.verbose:
+                logger.info(response)
+            return response
                     
 
     @register(_type="router", _name="boolean_router")
@@ -392,9 +399,23 @@ class VoidWalker():
     def select_action_node(self, state: AgentState) -> dict:
         action = ActionModel(name=self.select_action_node._name, timestamp=datetime.now())
 
+        EXCLUDED = {'reflect', 'select_action', 'initialize_tools', 'decide_open_website'}
+        action_names = [a.name for a in state.actions if a.name not in EXCLUDED]
+        history_line = f"Action history: {action_names}\n"
+        recent = [a.name for a in state.actions if a.name not in EXCLUDED][-10:]
+        counts = {}
+        for name in recent:
+            counts[name] = counts.get(name, 0) + 1
+
+        warnings = [f"you've used '{name}' {count} times in your last 10 meaningful actions" 
+                    for name, count in counts.items() if count >= 3]
+
+        if warnings:
+            history_line += f"Warning: {'; '.join(warnings)}. Try something different.\n"
+
         message = f"Current reflection: {state.reflection}\n" \
            f"Mood: {state.mood}\n" \
-           f"Action history: {[a.name for a in state.actions]}\n" \
+           + history_line + \
            f"Messages you can see: {state.last_read_messages}\n" \
            f"Windows you've opened: {state.opened_windows}\n" \
            f"Messages you sent: {'; '.join([m.message for m in state.sent_messages])}\n" \
@@ -451,12 +472,28 @@ class VoidWalker():
         prev_messages = set(state.last_read_messages)
         new_messages = [m for m in tool_output.visible_messages if m not in sent_texts and m not in prev_messages]
 
-        # TODO Invite friend
+        if tool_output.friend_invite is not None and len(state.invited_friends) < self.friends_limit:
+            tool_output.friend_invite.name = state.name
+            friend = VoidWalker(
+                verbose=self.verbose,
+                time_limit_min=self.time_limit_min,
+                actions_limit=self.actions_limit,
+                friends_limit=self.friends_limit,
+                friend_invite=tool_output.friend_invite
+            )
+            thread = threading.Thread(target=friend.walk, daemon=True)
+            thread.start()
+
+
+
+
+
         return {"actions": action,
                 "last_read_messages": new_messages,
                 "sent_messages": tool_output.to_sent_message(),
                 "feedback": tool_output.feedback,
-                "opened_windows": tool_output.window
+                "opened_windows": tool_output.window,
+                "invited_friends": tool_output.to_friend_invite(),
                 }
     
 
@@ -578,14 +615,14 @@ class WalkerTools:
 
     @register(_type="tool", _name="invite_friend")
     def invite_friend(self, 
+                      friends_name: Annotated[str, "Name of friend you want to invite"],
                       message: Annotated[str, "A personal message to send your friend along with the invite link."]):
         """Share this location in the void with a friend and invite them to join."""
         url = press_share(self.driver)
-        # TODO: add friend
         invite = FriendInviteModel(
-            name='test', # TODO: add walker's name
             shared_url=url,
-            message=message
+            message=message,
+            friends_name=friends_name
         )
         tool_output = ToolOutputModel()
         tool_output.message = message
@@ -598,7 +635,7 @@ class WalkerTools:
 
     @register(_type="tool", _name="check_new_messages")
     def check_new_messages(self) -> str:
-        """Look around and read any messages currently visible in the void."""
+        """Look around and read any messages currently visible in the void. If you've already checked and seen nothing new, do something else instead."""
         tool_output = ToolOutputModel()
         messages = read_visible_messages(self.driver)
         tool_output.visible_messages = messages
