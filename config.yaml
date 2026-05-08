@@ -1,7 +1,7 @@
 llm_config:
-  model_name: llama3.2:3b
-  model_type: local
-  temperature: 1
+  model_name: deepseek-v4-flash
+  model_type: deepseek
+  temperature: 0.6
 root_url: https://void-cast.fly.dev/
 site_description: ''
 status_config:
@@ -28,7 +28,7 @@ status_config:
     on_success: OK
   move_around:
     on_fail: Failed
-    on_success: OK
+    on_success: You drift a little further into the dark.
   open_modal:
     on_fail: Failed
     on_success: OK
@@ -37,7 +37,7 @@ status_config:
     on_success: OK
   press_explore:
     on_fail: Failed
-    on_success: OK
+    on_success: You are somewhere else now.
   press_share:
     on_fail: Failed
     on_success: OK
@@ -52,7 +52,7 @@ status_config:
     on_success: OK
   send_message:
     on_fail: Failed
-    on_success: OK
+    on_success: Your words drift into the void.
   validate_cast_input:
     on_fail: Failed
     on_success: OK
