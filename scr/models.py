@@ -40,7 +40,7 @@ class StatusConfigModel(BaseModel):
                 setattr(self, field, StatusMessageModel())
 
 class LLMConfigModel(BaseModel):
-    model_type: Literal["local", "groq"] = "local"
+    model_type: Literal["local", "groq", "gemini", "deepseek"] = "local"
     temperature: Optional[float] = 1
     model_name: Optional[str] = "llama3.2:3b"
     

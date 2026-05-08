@@ -149,7 +149,8 @@ def read_visible_messages(driver: Remote) -> List[str]:
             const cloud = document.querySelector('.cloud-group');
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
-            return Array.from(cloud.querySelectorAll('tspan'))
+            const seen = new Map();
+            Array.from(cloud.querySelectorAll('tspan'))
                 .filter(el => {
                     const rect = el.getBoundingClientRect();
                     return rect.width > 0 &&
@@ -159,7 +160,12 @@ def read_visible_messages(driver: Remote) -> List[str]:
                         rect.right <= viewportWidth &&
                         el.textContent.trim() !== '';
                 })
-                .map(el => el.textContent);
+                .forEach(el => {
+                    const parent = el.closest('text');
+                    if (!seen.has(parent)) seen.set(parent, []);
+                    seen.get(parent).push(el.textContent);
+                });
+            return Array.from(seen.values()).map(lines => lines.join(' '));
         """)
         return messages
     except Exception as e:

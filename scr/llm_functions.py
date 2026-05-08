@@ -11,7 +11,9 @@ from langchain.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, StateGraph
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
+from langchain_deepseek import ChatDeepSeek
 from scr.models import ActionModel, AgentState, AnswerModel, CreatePersonaModel, FriendInviteModel, ReflectionModel, ToolOutputModel, YesNoModel
 from scr.selenium_functions import close_browser, configure_chrome, interact_with_modal, move_around, open_site, read_visible_messages, send_message, press_explore, press_share
 from scr.setup import persona_config, config
@@ -34,6 +36,17 @@ def load_llm() -> BaseChatModel:
         return ChatOllama(
             model=config.llm_config.model_name, 
             temperature=config.llm_config.temperature
+        )
+    elif model_type == "gemini":
+        return ChatGoogleGenerativeAI(
+            model=config.llm_config.model_name,
+            temperature=config.llm_config.temperature
+        )
+    elif model_type == "deepseek":
+        return ChatDeepSeek(
+            model=config.llm_config.model_name,
+            temperature=config.llm_config.temperature,
+            extra_body={"thinking": {"type": "disabled"}}
         )
     else:
         logger.error(f"Unknown model type: '{model_type}'. Expected 'groq' or 'local'.")
@@ -138,7 +151,7 @@ class VoidWalker():
 
     def __init__(self, verbose: bool = False, 
                  time_limit_min: int = 10,
-                 actions_limit: int = 20) -> None:
+                 actions_limit: int = 50) -> None:
         """Init Walker."""
         self.driver, self.wait = None, None
         self.state = AgentState()
@@ -256,7 +269,7 @@ class VoidWalker():
 
 
     @register(_type="node", _name="decide_open_website")
-    def decide_open_node(self, state: AgentState) -> AgentState:
+    def decide_open_node(self, state: AgentState) -> dict:
         """Conditional node for site opening."""
         action = ActionModel(name=self.decide_open_node._name, timestamp=datetime.now())
 
@@ -272,11 +285,15 @@ class VoidWalker():
 
         action.llm_prompt = message
         action.llm_response = response
-        return {"actions": action}
+        if response.answer == False:
+            return {"actions": action,
+                    "exit_reason": "not interested"}
+        else:
+            return {"actions": action}
 
 
     @register(_type="node", _name="initialize_tools")
-    def initialize_tools_node(self, state: AgentState) -> AgentState:
+    def initialize_tools_node(self, state: AgentState) -> dict:
         action = ActionModel(name=self.initialize_tools_node._name, timestamp=datetime.now())
         self.driver, self.wait = configure_chrome()
         self.tools = self._make_tools()
@@ -286,7 +303,7 @@ class VoidWalker():
 
 
     @register(_type="node", _name="open_website")
-    def open_site_node(self, state: AgentState) -> AgentState:
+    def open_site_node(self, state: AgentState) -> dict:
         """Node to open website."""
         
         action = ActionModel(name=self.open_site_node._name, timestamp=datetime.now())
@@ -298,7 +315,7 @@ class VoidWalker():
 
 
     @register(_type="node", _name="close_website")
-    def close_website_node(self, state: AgentState) -> AgentState:
+    def close_website_node(self, state: AgentState) -> dict:
         """Node to close website."""
         action = ActionModel(name=self.close_website_node._name, timestamp=datetime.now())
 
@@ -312,7 +329,7 @@ class VoidWalker():
     
 
     @register(_type="node", _name="observe_website")
-    def observe_site_node(self, state: AgentState) -> AgentState:
+    def observe_site_node(self, state: AgentState) -> dict:
         """"""
 
         action = ActionModel(name=self.observe_site_node._name, timestamp=datetime.now())
@@ -345,7 +362,7 @@ class VoidWalker():
 
 
     @register(_type="node", _name="reflect")
-    def reflect_node(self, state: AgentState) -> AgentState:
+    def reflect_node(self, state: AgentState) -> dict:
             action = ActionModel(name=self.reflect_node._name, timestamp=datetime.now())
 
             last_action = self.to_reflection_context(state.actions[-1])
@@ -372,7 +389,7 @@ class VoidWalker():
     
 
     @register(_type="node", _name="select_action")
-    def select_action_node(self, state: AgentState) -> AgentState:
+    def select_action_node(self, state: AgentState) -> dict:
         action = ActionModel(name=self.select_action_node._name, timestamp=datetime.now())
 
         message = f"Current reflection: {state.reflection}\n" \
@@ -393,18 +410,31 @@ class VoidWalker():
     @register(_type="router", _name="tool_router")
     def tool_router(self, state: AgentState) -> str:
         last = state.actions[-1].llm_response
-        # Add close reason
-        elapsed = datetime.now() - state.start_time
-        if len(state.actions) > self.actions_limit:
-            return "close_website"
-        elif elapsed.total_seconds() >= self.time_limit_min * 60:
-            return "close_website"
-
         if hasattr(last, 'tool_calls') and last.tool_calls:
             return "execute_tool"
         return "close_website"
     
-    # TODO: check conditions node
+
+
+    @register(_type="node", _name="check_conditions")
+    def check_conditions_node(self, state: AgentState) -> dict:
+        action = ActionModel(name=self.check_conditions_node._name, timestamp=datetime.now())
+        elapsed = datetime.now() - state.start_time
+        if len(state.actions) > self.actions_limit:
+            return {"exit_reason": "action limit"}
+        elif elapsed.total_seconds() >= self.time_limit_min * 60:
+            return {"exit_reason": "time limit"}
+        # TODO: add summarize
+        else:
+            return {}
+    
+
+    @register(_type="router", _name="post_action_router")
+    def post_action_router(self, state: AgentState) -> str:
+        if state.exit_reason is not None:
+            return "close_website"
+        return "reflect"
+
     
 
     @register(_type="node", _name="execute_tool")
@@ -416,10 +446,14 @@ class VoidWalker():
         action = ActionModel(name=tool_call['name'], 
                              timestamp=datetime.now(), 
                              function_result=tool_output.tool_message)
+        
+        sent_texts = {m.message for m in state.sent_messages}
+        prev_messages = set(state.last_read_messages)
+        new_messages = [m for m in tool_output.visible_messages if m not in sent_texts and m not in prev_messages]
 
         # TODO Invite friend
         return {"actions": action,
-                "last_read_messages": tool_output.visible_messages,
+                "last_read_messages": new_messages,
                 "sent_messages": tool_output.to_sent_message(),
                 "feedback": tool_output.feedback,
                 "opened_windows": tool_output.window
@@ -440,12 +474,19 @@ class VoidWalker():
         self.builder.add_edge("open_website", "observe_website")
         self.builder.add_edge("observe_website", "reflect")
         self.builder.add_edge("reflect", "select_action")
-        self.builder.add_conditional_edges("select_action", self.tool_router, {
-            "execute_tool": "execute_tool",
-            "close_website": "close_website"
-        })
-        self.builder.add_edge("execute_tool", "reflect")
-
+        self.builder.add_conditional_edges(
+            "select_action", 
+            self.tool_router, {
+                "execute_tool": "execute_tool",
+                "close_website": "close_website"
+                })
+        self.builder.add_edge("execute_tool", "check_conditions")
+        self.builder.add_conditional_edges(
+            "check_conditions", 
+            self.post_action_router, {
+                "close_website": "close_website",
+                "reflect": "reflect"
+            })
         self.builder.set_finish_point("close_website")
         self.graph = self.builder.compile(debug=self.verbose)
 
@@ -456,14 +497,15 @@ class VoidWalker():
 class WalkerTools:
     def __init__(self, driver) -> None:
         self.driver = driver
+        
 
     @register(_type="tool", _name="send_message")
     def send_message(self, 
                     message: Annotated[str, 
                                         "The message you want to send to the void."]) -> ToolOutputModel:
-            """Send a message to the void. 
-            You must decide what to write based on your persona, mood, and what you've seen. 
-            The message should feel natural and human."""
+            """Cast a message into the void. 
+            Write something true to your persona, mood, and what you've observed. 
+            Keep it short and human."""
             tool_output = ToolOutputModel()
             tool_output.tool_message = send_message(self.driver, message)
             tool_output.visible_messages = read_visible_messages(self.driver)
@@ -474,11 +516,9 @@ class WalkerTools:
 
     @register(_type="tool", _name="respond_to_message")
     def respond_to_message(self,
-                           reply_to: Annotated[str,
-                                                   "Message you want to reply to"],
-                           reply: Annotated[str,
-                                              "Message you want to send."]) -> str:
-        """Respond to one of visible messages."""
+                           reply_to: Annotated[str, "Exact text of the message you are replying to."],
+                           reply: Annotated[str, "Your reply. Keep it natural and in character."]) -> str:
+        """Reply to a specific message you can see in the void."""
         tool_output = ToolOutputModel()
         tool_output.reply_to = reply_to
         tool_output.message = reply
@@ -490,7 +530,8 @@ class WalkerTools:
 
     @register(_type="tool", _name="press_explore")
     def explore(self) -> str:
-        """Press explore button to see other corners of the void."""
+        """Teleport to a random location in the void. 
+        Use when you want to discover new messages elsewhere."""        
         tool_output = ToolOutputModel()
         tool_output.tool_message = press_explore(self.driver)
         tool_output.visible_messages = read_visible_messages(self.driver)
@@ -500,11 +541,10 @@ class WalkerTools:
 
     @register(_type="tool", _name="move_around")
     def move(self,
-             dx: Annotated[int,
-                           "How far horizontally you want to move."],
-             dy: Annotated[int,
-                           "How far vertically you want to move."]) -> str:
-        """Move aroud your current position to see more."""
+             dx: Annotated[int, "Horizontal distance. Negative moves left, positive moves right."],
+             dy: Annotated[int, "Vertical distance. Negative moves up, positive moves down."]) -> str:
+        """Drift from your current position to see nearby messages. 
+        Small values for subtle movement, large for bigger jumps."""
         tool_output = ToolOutputModel()
         tool_output.tool_message = move_around(self.driver, dx, dy)
         tool_output.visible_messages = read_visible_messages(self.driver)
@@ -514,9 +554,8 @@ class WalkerTools:
 
     @register(_type="tool", _name="open_window")
     def open_window(self, 
-                    window: Annotated[Literal['about', 'support', 'terms'], 
-                                      f"Select window to open"]) -> str:
-        """Open window and read it's content."""
+                    window: Annotated[Literal['about', 'support', 'terms'], "Panel to open."]) -> str:
+        """Open one of the site's info panels and read its contents."""
         tool_output = ToolOutputModel()
         tool_output.tool_message = interact_with_modal(driver=self.driver, modal_name=window)
         tool_output.window = window
@@ -526,11 +565,12 @@ class WalkerTools:
     
 
     @register(_type="tool", _name="send_feedback")
-    def send_feedback(self, feedback: Annotated[str, "Tell us about your experience using this site."]) -> str:
-        """Use this to write your feedback about this site."""
+    def send_feedback(self, 
+                      feedback: Annotated[str, "Your thoughts about the site. Speak as yourself."]) -> str:
+        """Leave feedback about your experience on void-cast. Reflect honestly as your persona."""
         tool_output = ToolOutputModel()
         tool_output.feedback = feedback
-        tool_output.tool_message = "Thank you for your feedback!"
+        tool_output.tool_message = "Your thoughts have been noted."
         tool_output.visible_messages = read_visible_messages(self.driver)
 
         return tool_output.model_dump_json()
@@ -538,8 +578,8 @@ class WalkerTools:
 
     @register(_type="tool", _name="invite_friend")
     def invite_friend(self, 
-                      message: Annotated[str, "Message you want to sent to your friend along with the link to the void."]) -> str:
-        """Send invite to the void to your friend."""
+                      message: Annotated[str, "A personal message to send your friend along with the invite link."]):
+        """Share this location in the void with a friend and invite them to join."""
         url = press_share(self.driver)
         # TODO: add friend
         invite = FriendInviteModel(
@@ -549,22 +589,19 @@ class WalkerTools:
         )
         tool_output = ToolOutputModel()
         tool_output.message = message
-        tool_output.tool_message = "You send an invite to your friend!"
+        tool_output.tool_message = "Your friend has been invited to the void."
         tool_output.visible_messages = read_visible_messages(self.driver)
         tool_output.friend_invite = invite
 
         return tool_output.model_dump_json()
+    
 
     @register(_type="tool", _name="check_new_messages")
     def check_new_messages(self) -> str:
-        """Check new messages in void."""
+        """Look around and read any messages currently visible in the void."""
         tool_output = ToolOutputModel()
         messages = read_visible_messages(self.driver)
         tool_output.visible_messages = messages
-        if not messages:
-            tool_output.tool_message = "There is no messages here, just emptiness"
-        else:
-            messages = ';\n'.join([m for m in messages])
-            tool_output.tool_message = f"In the darkness you can see these messages:\n{messages}"
-            
+        tool_output.tool_message = "You look around the void"
+
         return tool_output.model_dump_json()

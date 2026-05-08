@@ -1,6 +1,6 @@
 llm_config:
-  model_name: llama-3.3-70b-versatile #qwen2.5:7b
-  model_type: groq #local
+  model_name: deepseek-v4-flash
+  model_type: deepseek
   temperature: 0.6
 root_url: https://void-cast.fly.dev/
 site_description: ''
@@ -28,7 +28,7 @@ status_config:
     on_success: OK
   move_around:
     on_fail: Failed
-    on_success: You moved to a new place in void!
+    on_success: You drift a little further into the dark.
   open_modal:
     on_fail: Failed
     on_success: OK
@@ -37,7 +37,7 @@ status_config:
     on_success: OK
   press_explore:
     on_fail: Failed
-    on_success: You just teleported to a new place!
+    on_success: You are somewhere else now.
   press_share:
     on_fail: Failed
     on_success: OK
@@ -52,7 +52,7 @@ status_config:
     on_success: OK
   send_message:
     on_fail: Failed
-    on_success: Your message was sent to the void!
+    on_success: Your words drift into the void.
   validate_cast_input:
     on_fail: Failed
     on_success: OK
