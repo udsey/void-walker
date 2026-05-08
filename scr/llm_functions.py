@@ -615,9 +615,11 @@ class WalkerTools:
 
     @register(_type="tool", _name="invite_friend")
     def invite_friend(self, 
-                      friends_name: Annotated[str, "Name of friend you want to invite"],
-                      message: Annotated[str, "A personal message to send your friend along with the invite link."]):
-        """Share this location in the void with a friend and invite them to join."""
+                    friends_name: Annotated[str, "Name of someone you know. Can be real or made up—just pick any name."],
+                    message: Annotated[str, "What you'd say to get them to join you here."]):
+        """Call out to someone you know. 
+        Even if they're not really there, the act of calling feels good. 
+        Be spontaneous—you can invite your mother, a coworker, that guy from the coffee shop, whoever."""
         url = press_share(self.driver)
         invite = FriendInviteModel(
             shared_url=url,
