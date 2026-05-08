@@ -208,32 +208,28 @@ class AgentState(BaseModel):
     model_name: str | None = None
     model_temperature: float | None = None
 
-    # Position 
-    current_url: str = ""
-    shared_url: str | None = None
-    
-    # Reasoning
-    exit_reason: Optional[str] = None
-    summary: str | None = None
-    reflection: str | None = None
-    feedback: Annotated[list[str], append_str] = []
-
     # Persona
     name: Optional[str] = None
     mood: str = "curious"
     system_prompt: str = ""
 
+    # Position 
+    current_url: str = None
+    
+    # Reasoning
+    exit_reason: Optional[str] = None
+    summary: str | None = None #TODO
+    reflection: str | None = None
+    feedback: Annotated[list[str], append_str] = []
+
     # Social
     is_friend: bool = False
-    friend_messages: list[FriendMessageModel] = []
+    #friend_messages: list[FriendMessageModel] = []
     invited_friends: Annotated[list[FriendInviteModel], append_friend] = []
 
     # Messages
     sent_messages: Annotated[list[SentMessageModel], append_message] = []
     last_read_messages: List[str] = []
-    focused_message: str | None = None
-    outstanding_messages: List[str] = []
-    outstanding_history: Set[str] | None = Field(default_factory=set)
 
     # Actions
     actions: Annotated[list[ActionModel], add_actions] = []

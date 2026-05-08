@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from inspect import signature
 import logging
@@ -15,6 +14,7 @@ from langgraph.graph import END, StateGraph
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel
 from langchain_deepseek import ChatDeepSeek
+from scr.logging_db import DatabaseWriter
 from scr.models import ActionModel, AgentState, AnswerModel, CreatePersonaModel, FriendInviteModel, ReflectionModel, ToolOutputModel, YesNoModel
 from scr.selenium_functions import close_browser, configure_chrome, interact_with_modal, move_around, open_site, read_visible_messages, send_message, press_explore, press_share
 from scr.setup import persona_config, config
@@ -160,6 +160,11 @@ class VoidWalker():
         """Init Walker."""
         self.driver, self.wait = None, None
         self.state = AgentState()
+        
+        # Initialize DB writer with pool
+        self.db = DatabaseWriter(self.state.session_id)
+        self.db.init_pool()
+        
         self.tools = []
 
         self.time_limit_min = time_limit_min
@@ -253,6 +258,7 @@ class VoidWalker():
     def walk(self) -> StateGraph | None:
         """Invoke graph."""
         with _active_walkers:
+
             response = self.graph.invoke(input={
                     "system_prompt": self.persona.system_prompt,
                     "mood": self.persona.mood,
@@ -263,6 +269,8 @@ class VoidWalker():
             self.state = AgentState(**response)
             self.state.model_name = f"{config.llm_config.model_type} {config.llm_config.model_name}"
             self.state.model_temperature = config.llm_config.temperature
+
+            self.db.flush(self.state)
 
             if self.verbose:
                 logger.info(response)
@@ -315,7 +323,7 @@ class VoidWalker():
         
         action = ActionModel(name=self.open_site_node._name, timestamp=datetime.now())
         action.function_result = open_site(driver=self.driver, wait=self.wait, url=state.current_url)
-
+        self.log_action(action)
         return {
             "actions": action
         }
@@ -327,11 +335,14 @@ class VoidWalker():
         action = ActionModel(name=self.close_website_node._name, timestamp=datetime.now())
 
         action.function_result = close_browser(driver=self.driver)
+        self.log_action(action)
 
+        exit_reason = state.exit_reason if state.exit_reason else "decide to close"
 
         return {
             "actions": action,
             "end_time": datetime.now(),
+            "exit_reason": exit_reason
         }
     
 
@@ -349,6 +360,7 @@ class VoidWalker():
         response = self.call_llm(message=message, output_schema=AnswerModel)
         action.llm_prompt = message
         action.llm_response = response
+        self.log_action(action)
 
         return {
             "actions": action
@@ -388,6 +400,17 @@ class VoidWalker():
             action.llm_prompt = message
             action.llm_response = response
 
+            if self.db:
+                self.db.add("reflections", {
+                    "timestamp": action.timestamp,
+                    "action_name": state.actions[-1].name,
+                    "mood_before": state.mood,
+                    "mood_after": response.mood or state.mood,
+                    "reflection": response.reflection
+                })
+            
+            self.log_action(action)
+
             return {
                 "actions": action,
                 "reflection": response.reflection,
@@ -425,6 +448,8 @@ class VoidWalker():
         action.llm_prompt = message
         action.llm_response = response
 
+        self.log_action(action)
+
         return {"actions": action}
 
 
@@ -441,6 +466,7 @@ class VoidWalker():
     def check_conditions_node(self, state: AgentState) -> dict:
         action = ActionModel(name=self.check_conditions_node._name, timestamp=datetime.now())
         elapsed = datetime.now() - state.start_time
+        self.log_action(action)
         if len(state.actions) > self.actions_limit:
             return {"exit_reason": "action limit"}
         elif elapsed.total_seconds() >= self.time_limit_min * 60:
@@ -455,8 +481,52 @@ class VoidWalker():
         if state.exit_reason is not None:
             return "close_website"
         return "reflect"
+    
+    
+    def log_action(self, action: ActionModel) -> None:
+
+        if action.name in {'reflect', 'select_action'}:
+            pass
+        else:
+            self.db.add("actions", {
+            "name": action.name,
+            "timestamp": action.timestamp,
+            "llm_prompt": action.llm_prompt,
+            "llm_answer": action.llm_response.answer if action.llm_response else None,
+            "llm_reason": action.llm_response.reason if action.llm_response else None,
+            "function_result": action.function_result
+        })
 
     
+    def add_to_db(self, name, timestamp, tool_output) -> None:
+        if not self.db:
+            return
+        if tool_output.message:
+            self.db.add("messages", {
+                "timestamp": timestamp,
+                "message": tool_output.message,
+                "reply_to": tool_output.reply_to,
+                "tool_message": tool_output.tool_message,
+                "last_read_messages": tool_output.visible_messages
+            })
+
+        if tool_output.feedback:
+            self.db.add("feedback", {
+                "timestamp": timestamp,
+                "feedback_text": tool_output.feedback
+            })
+        
+        if tool_output.friend_invite:
+            self.db.add("invites", {
+                "timestamp": timestamp,
+                "name": name,
+                "friends_name": tool_output.friend_invite.friends_name,
+                "common_language": None,  # TODO: add
+                "shared_url": tool_output.friend_invite.shared_url,
+                "message": tool_output.friend_invite.message,
+                "friend_session_id": None  # TODO: add
+            })
+        
 
     @register(_type="node", _name="execute_tool")
     def execute_tool_node(self, state: AgentState) -> dict:
@@ -472,6 +542,10 @@ class VoidWalker():
         prev_messages = set(state.last_read_messages)
         new_messages = [m for m in tool_output.visible_messages if m not in sent_texts and m not in prev_messages]
 
+        self.add_to_db(name=state.name, 
+                       timestamp=action.timestamp, 
+                       tool_output=tool_output)
+
         if tool_output.friend_invite is not None and len(state.invited_friends) < self.friends_limit:
             tool_output.friend_invite.name = state.name
             friend = VoidWalker(
@@ -483,10 +557,8 @@ class VoidWalker():
             )
             thread = threading.Thread(target=friend.walk, daemon=True)
             thread.start()
-
-
-
-
+        
+        self.log_action(action)
 
         return {"actions": action,
                 "last_read_messages": new_messages,

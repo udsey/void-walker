@@ -7,6 +7,8 @@ from scr.models import PersonaConfigModel, ConfigModel
 
 import logging
 
+load_dotenv()
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,8 +46,15 @@ def save_config(config: BaseModel, filename: str):
 
 
 BASE_DIR = os.getcwd()
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_NAME = os.getenv('DB_NAME')
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
+
 
 persona_config = load_config_file('persona_config.yaml')
 persona_config = PersonaConfigModel(**persona_config)
 config = load_config_file('config.yaml')
 config = ConfigModel(**config)
+
