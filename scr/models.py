@@ -43,13 +43,24 @@ class LLMConfigModel(BaseModel):
     model_type: Literal["local", "groq", "gemini", "deepseek"] = "local"
     temperature: Optional[float] = 1
     model_name: Optional[str] = "llama3.2:3b"
+
+
+class WalkerConfigModel(BaseModel):
+    verbose: Optional[bool] = False
+    action_limit: Optional[int] = 50
+    friends_limit: Optional[int] = 1
+    active_walkers_limit: Optional[int] = 3
+    total_walkers_limit: Optional[int] = 5
+    time_limit: Optional[int] = 10
+
     
 class ConfigModel(BaseModel):
     root_url: str = "https://void-cast.fly.dev/"
     status_config: Optional[StatusConfigModel] = None
     wait_timeout: Optional[int] = 10
     site_description: Optional[str] = ""
-    llm_config: Optional[LLMConfigModel] = None
+    llm_config: Optional[LLMConfigModel] = LLMConfigModel()
+    walkers_config: Optional[WalkerConfigModel] = WalkerConfigModel()
 
     def model_post_init(self, __context: Any) -> None:
         if self.status_config is None:
@@ -149,14 +160,26 @@ class FriendMessageModel(BaseModel):
 class FriendInviteModel(BaseModel):
     name: Optional[str] = None
     friends_name: Optional[str] = None
+    friend_session_id: Optional[str] = None
     shared_url: str
     message: str
+    common_language: Optional[str] = None
+    session_id: Optional[str] = None
 
 class CreatePersonaModel(BaseModel):
-    system_prompt: str
+    name: str
+    age: int
+    gender: str
+    country: str
+    mother_language: str
+    second_languages: Optional[list[str]] = []
+    archetype: str
+    social_tendency: str
+    attention_span: str
     mood: str
     is_friend: bool
     url: str
+    system_prompt: str
 
     def __str__(self) -> str:
         lines = self.system_prompt.split('\n')
@@ -203,37 +226,34 @@ class AgentState(BaseModel):
 
     # Session
     session_id: str = Field(default_factory=lambda: uuid.uuid1().hex)
-    start_time: datetime = Field(default_factory=datetime.now)
+    friend_session_id: Optional[str] = None
+    start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    model_name: str | None = None
-    model_temperature: float | None = None
-
-    # Position 
-    current_url: str = ""
-    shared_url: str | None = None
-    
-    # Reasoning
-    exit_reason: Optional[str] = None
-    summary: str | None = None
-    reflection: str | None = None
-    feedback: Annotated[list[str], append_str] = []
+    model_name: Optional[str] = None
+    model_temperature: Optional[float] = None
 
     # Persona
     name: Optional[str] = None
-    mood: str = "curious"
-    system_prompt: str = ""
+    mood: Optional[str] = None
+    system_prompt: Optional[str] = None
+
+    # Position 
+    current_url: Optional[str] = None
+    
+    # Reasoning
+    exit_reason: Optional[str] = None
+    summary: Optional[str] = None #TODO
+    reflection: Optional[str] = None
+    feedback: Annotated[list[str], append_str] = []
 
     # Social
-    is_friend: bool = False
-    friend_messages: list[FriendMessageModel] = []
+    is_friend: Optional[bool] = None
+    #friend_messages: list[FriendMessageModel] = []
     invited_friends: Annotated[list[FriendInviteModel], append_friend] = []
 
     # Messages
     sent_messages: Annotated[list[SentMessageModel], append_message] = []
     last_read_messages: List[str] = []
-    focused_message: str | None = None
-    outstanding_messages: List[str] = []
-    outstanding_history: Set[str] | None = Field(default_factory=set)
 
     # Actions
     actions: Annotated[list[ActionModel], add_actions] = []
