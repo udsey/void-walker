@@ -80,8 +80,8 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
     friend_name = None
     friend_message = None
 
-
-    archetype = persona_config.archetypes[random.choice(list(persona_config.archetypes.keys()))]
+    archetype = random.choice(list(persona_config.archetypes.keys()))
+    archetype_description = persona_config.archetypes[archetype]
     attention_span = random.choice(persona_config.attention_spans)
     gender = random.choice(persona_config.genders)
     mood = random.choice(persona_config.moods)
@@ -113,7 +113,7 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
 
     prompt_text = "You are roleplaying as a human. You MUST stay in character at all times. "\
         f"Your name is {name}. You are a {age} year old {gender} from {country}. "\
-        f"Your native language is {mother_language}. {also_speak_line}\n{archetype} "\
+        f"Your native language is {mother_language}. {also_speak_line}\n{archetype_description} "\
         f"You are {social_tendency} by nature and your attention span is {attention_span}. "\
         f"You are feeling {mood} right now.\n\n"\
         "Always act as this person would. " \
@@ -133,11 +133,13 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
     persona = CreatePersonaModel(
         name=name,
         age=age,
+        generation=generation,
         gender=gender,
         country=country,
         mother_language=mother_language,
         second_languages=second_languages,
         archetype=archetype,
+        archetype_description=archetype_description,
         social_tendency=social_tendency,
         attention_span=attention_span,
         mood=mood,
@@ -386,11 +388,13 @@ class VoidWalker():
             "timestamp": datetime.now(),
             "name": self.state.name,
             "age": self.persona.age,
+            "generation": self.persona.generation,
             "gender": self.persona.gender,
             "country": self.persona.country,
             "mother_language": self.persona.mother_language,
             "second_languages": self.persona.second_languages,
             "archetype": self.persona.archetype,
+            "archetype_description": self.persona.archetype_description,
             "social_tendency": self.persona.social_tendency,
             "attention_span": self.persona.attention_span,
             "mood": self.persona.mood,

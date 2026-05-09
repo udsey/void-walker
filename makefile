@@ -1,4 +1,4 @@
-.PHONY: help create-bd drop-db  recreate-db run-walkers report 
+.PHONY: help create-bd drop-db recreate-db run-walkers report dashboard
 
 help:
 	@echo "Available commands:"
@@ -21,3 +21,6 @@ run-walkers:
 
 report:
 	@uv run python -c "from scr.logging_db import generate_report; generate_report('$(session_id)')"
+
+dashboard:
+	@uv run python -c "from dashboard.app import app; app.run(debug=True)"

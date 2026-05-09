@@ -32,6 +32,8 @@ def configure_chrome() -> tuple[Chrome, WebDriverWait]:
     "profile.content_settings.exceptions.clipboard": {
         f"{config.root_url},*": {"last_modified": 1, "setting": 1}
     }})
+    if not config.walkers_config.verbose:
+        options.add_argument("--headless=new")
     driver = Chrome(service=Service(ChromeDriverManager().install()), options=options)
     wait = WebDriverWait(driver, config.wait_timeout)
     return driver, wait

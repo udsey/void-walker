@@ -1,0 +1,330 @@
+# dashboard/db.py
+import psycopg2
+import pandas as pd
+from scr.logging_db import DB_CONFIG
+
+
+def query(sql: str, params: tuple = None) -> pd.DataFrame:
+    conn = psycopg2.connect(**DB_CONFIG)
+    try:
+        df = pd.read_sql(sql, conn, params=params)
+        for col in df.select_dtypes(include=["timedelta"]).columns:
+            df[col] = df[col].astype(str)
+        for col in df.select_dtypes(include=["object"]).columns:
+            df[col] = df[col].apply(lambda x: ", ".join(x) if isinstance(x, list) else x)
+        return df
+    finally:
+        conn.close()
+
+# RAW Tables
+
+def get_sessions() -> pd.DataFrame:
+    return query("""select * from sessions""")
+
+
+def get_actions() -> pd.DataFrame:
+    return query("""select * from actions""")
+
+
+def get_messages() -> pd.DataFrame:
+    return query("""select * from messages""")
+
+
+def get_invites() -> pd.DataFrame:
+    return query("""select * from invites""")
+
+
+def get_feedback() -> pd.DataFrame:
+    return query("""select * from feedback""")
+
+
+def get_reflections() -> pd.DataFrame:
+    return query("""select * from reflections""")
+
+
+def get_personas() -> pd.DataFrame:
+    return query("""select * from personas""")
+
+
+
+raw_map = {
+    "sessions": get_sessions,
+    "actions": get_actions,
+    "messages": get_messages,
+    "invites": get_invites,
+    "reflection": get_reflections,
+    "personas": get_personas,
+    "feedback": get_feedback
+    
+}
+
+
+# Sessions
+
+def get_session_overview(session_id: str) -> pd.DataFrame:
+    query_text = """select
+            s.session_id, s.name, s.is_friend, s.model_name, s.model_temperature,
+            s.initial_url, s.current_url,
+            s.exit_reason, s.start_time, s.end_time,
+            (s.end_time - s.start_time) as session_duration,
+            s.start_time as start_time,
+            s.end_time as end_time,
+            s.total_actions, s.total_invited,
+            count(distinct a.id) as logged_actions,
+            count(distinct case when a.name = 'reflect' then a.id end) as reflections,
+            count(distinct case when a.name = 'select_action' then a.id end) as selections,
+            count(distinct m.id) as messages_sent,
+            count(distinct case when m.reply_to is not null then m.id end) as replies_sent,
+            count(distinct i.id) as invites_sent,
+            p.age, p.gender, p.country, p.mother_language, p.second_languages,
+            p.archetype, p.social_tendency, p.attention_span, p.mood as initial_mood, s.mood as final_mood
+        from sessions s
+        left join actions a on a.session_id = s.session_id
+        left join messages m on m.session_id = s.session_id and m.is_sent = true
+        left join invites i on i.session_id = s.session_id
+        left join personas p on p.session_id = s.session_id
+        where s.session_id = %s
+        group by s.session_id, p.id"""
+    return query(query_text, (session_id, ))
+
+
+def get_actions_per_session(session_id: str) -> pd.DataFrame:
+    query_text = """select
+            a.id, a.name as action_name, a.timestamp,
+            a.timestamp - lag(a.timestamp) over (partition by a.session_id order by a.timestamp) as time_since_prev,
+            a.llm_reason, a.llm_answer, a.function_result
+        from actions a
+        where a.session_id = %s
+        order by a.timestamp"""
+    return query(query_text, (session_id, ))
+
+
+def get_mood_timeline_per_session(session_id: str) -> pd.DataFrame:
+    query_text = """select
+            r.timestamp, r.action_name as after_action,
+            r.mood_before, r.mood_after,
+            r.mood_before != r.mood_after as mood_shifted,
+            r.reflection
+        from reflections r
+        where r.session_id = %s
+        order by r.timestamp"""
+    return query(query_text, (session_id, ))
+
+
+def get_messages_per_session(session_id: str) -> pd.DataFrame:
+    query_text = """select
+            m.id, m.timestamp, m.is_sent, m.message, m.reply_to,
+            m.last_read_messages,
+            case when m.reply_to is not null then true else false end as is_reply
+        from messages m
+        where m.session_id = %s
+        order by m.timestamp"""
+    return query(query_text, (session_id, ))
+
+
+def get_invites_per_session(session_id: str) -> pd.DataFrame:
+    query_text = """select
+            i.timestamp, i.name as from_walker, i.friends_name as to_friend,
+            i.common_language, i.message, i.shared_url, i.friend_session_id,
+            s.exit_reason as friend_exit_reason,
+            (s.end_time - s.start_time) as friend_session_duration
+        from invites i
+        left join sessions s on s.session_id = i.friend_session_id
+        where i.session_id = %s
+        order by i.timestamp"""
+    return query(query_text, (session_id, ))
+
+
+def get_feedback_per_session(session_id: str) -> pd.DataFrame:
+    query_text = """select f.timestamp, f.feedback_text
+        from feedback f
+        where f.session_id = %s
+        order by f.timestamp"""
+    return query(query_text, (session_id, ))
+
+
+
+def get_tool_usage_per_session(session_id: str) -> pd.DataFrame:
+    query_text = """select
+            a.name as tool_name,
+            count(*) as times_used,
+            count(case when a.function_result not ilike '%%fail%%'
+                       and a.function_result not ilike '%%error%%' then 1 end) as success_count,
+            count(case when a.function_result ilike '%%fail%%'
+                       or a.function_result ilike '%%error%%' then 1 end) as fail_count,
+            round(count(case when a.function_result not ilike '%%fail%%'
+                             and a.function_result not ilike '%%error%%' then 1 end)
+                  * 100.0 / count(*), 1) as success_rate_pct,
+            min(a.timestamp) as first_used,
+            max(a.timestamp) as last_used
+        from actions a
+        where a.session_id = %s
+        and a.name not in ('reflect', 'select_action', 'decide_open_website',
+                           'initialize_tools', 'open_website', 'observe_website',
+                           'close_website', 'check_conditions')
+        group by a.name
+        order by times_used desc"""
+    return query(query_text, (session_id, ))
+
+
+session_map = {
+    "overview": get_session_overview,
+    "actions": get_actions_per_session,
+    "mood timeline": get_mood_timeline_per_session,
+    "messages": get_messages_per_session,
+    "invites": get_invites_per_session,
+    "feedback": get_feedback_per_session,
+    "tool usage": get_tool_usage_per_session,
+}
+
+
+# Overview
+
+def get_overview_kpis() -> pd.DataFrame:
+    return query("""
+        select
+            (select count(*) from sessions) as total_sessions,
+            (select count(*) from messages where is_sent = true) as total_messages_sent,
+            (select count(*) from messages where is_sent = false) as total_messages_failed,
+            (select count(*) from actions) as total_actions,
+            (select count(*) from invites) as total_invites,
+            (select count(*) from feedback) as total_feedbacks,
+            (select round(avg(total_actions), 1) from sessions) as avg_actions_per_session,
+            (select round(avg(sent.cnt), 1) from (
+                select count(*) as cnt from messages where is_sent = true group by session_id
+                 ) sent) as avg_messages_per_session,
+            (select count(*) from reflections where mood_before != mood_after) as total_mood_shifts
+    """)
+
+
+def get_sessions_over_time() -> pd.DataFrame:
+    return query("""
+        select date_trunc('hour', start_time) as hour, count(*) as sessions
+        from sessions
+        group by hour order by hour
+    """)
+
+
+def get_action_distribution() -> pd.DataFrame:
+    return query("""
+        select name as action, count(*) as times_used
+        from actions
+        where name not in ('reflect', 'select_action', 'decide_open_website',
+                           'initialize_tools', 'open_website', 'observe_website',
+                           'close_website', 'check_conditions', 'summarize')
+        group by name order by times_used desc
+    """)
+
+
+def get_archetype_stats() -> pd.DataFrame:
+    return query("""
+        select
+            p.archetype,
+            count(distinct s.session_id) as sessions,
+            avg(extract(epoch from (s.end_time - s.start_time))/60) as avg_duration_minutes,
+            mode() within group (order by s.exit_reason) as most_common_exit
+        from sessions s
+        join personas p on p.session_id = s.session_id
+        where s.end_time is not null
+        group by p.archetype order by avg_duration_minutes desc
+    """)
+
+
+def get_exit_reason_distribution() -> pd.DataFrame:
+    return query("""
+        select exit_reason, count(*) as count
+        from sessions
+        where exit_reason is not null
+        group by exit_reason order by count desc
+    """)
+
+def get_friend_vs_solo() -> pd.DataFrame:
+    return query("""
+        select
+            case when is_friend then 'friend' else 'solo' end as type,
+            count(*) as count
+        from sessions
+        group by is_friend
+    """)
+
+
+overview_map = {
+    "kpis": get_overview_kpis,
+    "sessions_over_time": get_sessions_over_time,
+    "action_distribution": get_action_distribution,
+    "archetype_stats": get_archetype_stats,
+    "exit_reasons": get_exit_reason_distribution,
+    "friend_vs_solo": get_friend_vs_solo,
+}
+
+
+# Mood
+def get_mood_sankey() -> pd.DataFrame:
+    return query("""
+        select mood_before, mood_after, count(*) as count
+        from reflections
+        where mood_before != mood_after
+        and mood_before is not null and mood_after is not null
+        group by mood_before, mood_after
+        order by count desc
+    """)
+
+def get_mood_shift_counts() -> pd.DataFrame:
+    return query("""
+        select mood_after as mood, count(*) as shifts_into
+        from reflections
+        where mood_before != mood_after
+        and mood_after is not null
+        group by mood_after
+        order by shifts_into desc
+    """)
+
+def get_mood_timeline_by_archetype() -> pd.DataFrame:
+    return query("""
+        select p.archetype, r.timestamp, r.mood_after as mood
+        from reflections r
+        join personas p on p.session_id = r.session_id
+        where r.mood_after is not null
+        order by p.archetype, r.timestamp
+    """)
+
+mood_map = {
+    "sankey": get_mood_sankey,
+    "shift_counts": get_mood_shift_counts,
+    "timeline_by_archetype": get_mood_timeline_by_archetype,
+}
+
+def get_persona_world_map() -> pd.DataFrame:
+    return query("""
+        select country, count(*) as count
+        from personas
+        group by country order by count desc
+    """)
+
+def get_archetype_distribution() -> pd.DataFrame:
+    return query("""
+        select archetype, count(*) as count
+        from personas
+        group by archetype order by count desc
+    """)
+
+def get_social_tendency_distribution() -> pd.DataFrame:
+    return query("""
+        select social_tendency, count(*) as count
+        from personas
+        group by social_tendency order by count desc
+    """)
+
+def get_generation_distribution() -> pd.DataFrame:
+    return query("""
+        select generation, count(*) as count
+        from personas
+        group by generation order by count desc
+    """)
+
+personas_map = {
+    "world_map": get_persona_world_map,
+    "archetypes": get_archetype_distribution,
+    "social_tendency": get_social_tendency_distribution,
+    "generations": get_generation_distribution,
+}
