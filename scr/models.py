@@ -174,6 +174,8 @@ class CreatePersonaModel(BaseModel):
     mother_language: str
     second_languages: Optional[list[str]] = []
     archetype: str
+    archetype_description: str
+    generation: str
     social_tendency: str
     attention_span: str
     mood: str

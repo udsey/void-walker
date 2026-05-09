@@ -124,27 +124,27 @@ class DatabaseWriter:
                 INSERT INTO sessions 
                         (session_id, parent_session_id, start_time, end_time, 
                         model_name, model_temperature, 
-                        name, system_prompt, 
+                        name, system_prompt, mood,
                         initial_url, current_url, is_friend, total_actions, total_invited, 
                         exit_reason, summary)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (final_state.session_id, final_state.parent_session_id, final_state.start_time, final_state.end_time,
                 final_state.model_name, final_state.model_temperature,
-                final_state.name, final_state.system_prompt, final_state.initial_url, final_state.current_url,
+                final_state.name, final_state.system_prompt, final_state.mood, final_state.initial_url, final_state.current_url,
                 final_state.is_friend, len(final_state.actions),
                 len(final_state.invited_friends), final_state.exit_reason, final_state.summary))
             # Insert persona record 
             if self.buffer["persona"]:
                 p = self.buffer["persona"][0]
                 cur.execute("""
-                    INSERT INTO personas (session_id, timestamp, name, age, gender, country,
-                                        mother_language, second_languages, archetype, 
+                    INSERT INTO personas (session_id, timestamp, name, age, generation, gender, country,
+                                        mother_language, second_languages, archetype, archetype_description,
                                         social_tendency, attention_span, mood, 
                                         is_friend, system_prompt)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (session_id, p['timestamp'], p['name'], p['age'],
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (session_id, p['timestamp'], p['name'], p['age'], p['generation'],
                     p['gender'], p['country'], p['mother_language'],
-                    p['second_languages'], p['archetype'], p['social_tendency'],
+                    p['second_languages'], p['archetype'], p['archetype_description'], p['social_tendency'],
                     p['attention_span'], p['mood'], p['is_friend'], p['system_prompt']))
             
             # Batch insert actions - convert dicts to tuples

@@ -1,0 +1,188 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+* {
+    font-family: 'Inter', sans-serif;
+}
+
+body, .container-fluid {
+    background-color: #000000 !important;
+    color: #cccccc !important;
+}
+
+/* purple glow border on cards */
+.card {
+    background-color: #0a0a0a !important;
+    border: 1px solid #2a1a3e !important;
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.08) !important;
+}
+
+/* navbar */
+.navbar {
+    background-color: #000000 !important;
+    border-bottom: 1px solid #1a1a2e !important;
+}
+
+.navbar-brand {
+    color: #ffffff !important;
+    letter-spacing: 0.05em;
+}
+
+.nav-link {
+    color: #888888 !important;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+}
+
+.nav-link:hover, .nav-link.active {
+    color: #a78bfa !important;
+}
+
+/* headings */
+h1 {
+    font-weight: 300;
+    font-size: 2rem;
+    letter-spacing: 0.1em;
+    color: #ffffff !important;
+}
+
+h3, h6 {
+    font-weight: 300;
+    color: #888888 !important;
+    letter-spacing: 0.05em;
+}
+
+/* plotly chart backgrounds */
+.js-plotly-plot .plotly .bg {
+    fill: #000000 !important;
+}
+
+/* dropdown */
+.Select-control, .Select-menu-outer {
+    background-color: #0a0a0a !important;
+    border-color: #2a1a3e !important;
+    color: #cccccc !important;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #2a1a3e; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #a78bfa; }
+
+/* dropdown - dash 4.x */
+.dash-dropdown {
+    background-color: #0a0a0a !important;
+    border-color: #2a1a3e !important;
+    color: #cccccc !important;
+}
+
+.dash-dropdown input {
+    color: #cccccc !important;
+}
+
+.dropdown-container {
+    background-color: #0a0a0a !important;
+}
+
+.Select__control {
+    background-color: #0a0a0a !important;
+    border-color: #2a1a3e !important;
+}
+
+.Select__menu {
+    background-color: #0a0a0a !important;
+    border: 1px solid #2a1a3e !important;
+}
+
+.Select__option {
+    background-color: #0a0a0a !important;
+    color: #cccccc !important;
+}
+
+.Select__option--is-focused {
+    background-color: #1a0a2e !important;
+    color: #a78bfa !important;
+}
+
+.Select__option--is-selected {
+    background-color: #2a1a3e !important;
+    color: #ffffff !important;
+}
+
+.Select__single-value {
+    color: #cccccc !important;
+}
+
+.Select__placeholder {
+    color: #555555 !important;
+}
+
+.Select__input-container {
+    color: #cccccc !important;
+}
+
+/* dash 4 dropdown portal */
+.dash-dropdown .Select__control {
+    background-color: #0a0a0a !important;
+    border-color: #2a1a3e !important;
+}
+
+.dash-dropdown .Select__menu-portal,
+.dash-dropdown .Select__menu-list,
+.dash-dropdown .Select__menu {
+    background-color: #0a0a0a !important;
+    border: 1px solid #2a1a3e !important;
+}
+
+/* targets the portal rendered outside DOM tree */
+[class*="menu"] {
+    background-color: #0a0a0a !important;
+    color: #cccccc !important;
+}
+
+[class*="option"] {
+    background-color: #0a0a0a !important;
+    color: #cccccc !important;
+}
+
+[class*="option"]:hover {
+    background-color: #1a0a2e !important;
+    color: #a78bfa !important;
+}
+
+/* search input inside dropdown */
+.dash-dropdown input,
+.dash-dropdown .Select__input-container,
+[class*="Input"] input {
+    background-color: #0a0a0a !important;
+    color: #cccccc !important;
+}
+
+/* the search container itself */
+[class*="MenuList"] input,
+[class*="menu"] input {
+    background-color: #0a0a0a !important;
+    color: #cccccc !important;
+    border: none !important;
+}
+
+.dash-dropdown-content {
+    background-color: #0a0a0a !important;
+    color: #cccccc !important;
+    border: 1px solid #2a1a3e !important;
+}
+
+.dash-dropdown-grid-container {
+    background-color: #0a0a0a !important;
+    color: #cccccc !important;
+    border: 1px solid #2a1a3e !important;
+}
+
+.dash-dropdown-value,
+.dash-dropdown-placeholder {
+    color: #cccccc !important;
+}
+
+.dash-dropdown-search {
+    color: #cccccc !important;
+}
