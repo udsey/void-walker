@@ -59,8 +59,8 @@ status_config:
 wait_timeout: 10
 walkers_config:
   action_limit: 50
-  active_walkers_limit: 3
+  active_walkers_limit: 10
   friends_limit: 1
   time_limit: 10
-  total_walkers_limit: 5
+  total_walkers_limit: 10
   verbose: false

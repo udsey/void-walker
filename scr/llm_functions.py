@@ -6,6 +6,7 @@ import random
 import subprocess
 import threading
 from typing import Annotated, Any, Callable, List, Literal, Optional
+import uuid
 from langchain_core.tools.structured import StructuredTool
 from langchain.chat_models import BaseChatModel
 from langchain.messages import HumanMessage, SystemMessage
@@ -17,7 +18,7 @@ from pydantic import BaseModel
 from langchain_deepseek import ChatDeepSeek
 from scr.logging_db import DatabaseWriter
 from scr.models import ActionModel, AgentState, AnswerModel, CreatePersonaModel, FriendInviteModel, ReflectionModel, ToolOutputModel, YesNoModel
-from scr.selenium_functions import close_browser, configure_chrome, interact_with_modal, move_around, open_site, read_visible_messages, send_message, press_explore, press_share
+from scr.selenium_functions import close_browser, configure_chrome, get_current_url, interact_with_modal, move_around, open_site, read_visible_messages, send_message, press_explore, press_share
 from scr.setup import persona_config, config
 
 logger = logging.getLogger(__name__)
@@ -96,11 +97,14 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
         url = friend_invite.shared_url
         name = friend_invite.friends_name
         common_language_as_native = random.choice([True, False])
+
         if common_language_as_native:
             mother_language = friend_invite.common_language
+            second_languages = [l for l in second_languages if l != mother_language]
         else:
             if second_languages:
                 second_languages[random.randint(0, len(second_languages) - 1)] = friend_invite.common_language
+                second_languages = list(set(second_languages))
             else:
                 second_languages.append(friend_invite.common_language)
 
@@ -198,10 +202,10 @@ class VoidWalker():
         self.moods = persona_config.moods
 
 
-        self.state = AgentState()
+        self.session_id = self.session_id = uuid.uuid1().hex
 
         # Initialize DB writer with pool
-        self.db = DatabaseWriter(self.state.session_id)
+        self.db = DatabaseWriter()
         self.db.init_pool()
         
 
@@ -294,18 +298,19 @@ class VoidWalker():
             _active_walkers.release()
 
             invoke_input = {
+                "session_id": self.session_id,
                 "start_time": datetime.now(),
                 "system_prompt": self.persona.system_prompt,
                 "mood": self.persona.mood,
                 "is_friend": self.persona.is_friend,
+                "initial_url": self.persona.url,
                 "current_url": self.persona.url,
                 "name": self.persona.name,
                 "model_name": f"{config.llm_config.model_type}/{config.llm_config.model_name}",
                 "model_temperature": config.llm_config.temperature
             }
-
             if self.friend_invite:
-                invoke_input["friend_session_id"] = self.friend_invite.session_id
+                invoke_input['parent_session_id'] = self.friend_invite.session_id
 
             response = self.graph.invoke(input=invoke_input)
             self.state = AgentState(**response)
@@ -483,7 +488,7 @@ class VoidWalker():
         """Node to open website."""
         
         action = ActionModel(name=self.open_site_node._name, timestamp=datetime.now())
-        action.function_result = open_site(driver=self.driver, wait=self.wait, url=state.current_url)
+        action.function_result = open_site(driver=self.driver, wait=self.wait, url=state.initial_url)
         self.log_action(action)
         return {
             "actions": action
@@ -602,7 +607,6 @@ class VoidWalker():
             return {"exit_reason": "action limit"}
         elif elapsed.total_seconds() >= self.time_limit_min * 60:
             return {"exit_reason": "time limit"}
-        # TODO: add summarize
         else:
             return {}
     
@@ -621,9 +625,10 @@ class VoidWalker():
         prev_messages = set(state.last_read_messages)
         message_history = sent_texts | prev_messages
 
-        new_messages = [m for m in tool_output.visible_messages if m not in message_history]       
+        new_messages = [m for m in tool_output.visible_messages if m not in message_history]
+   
 
-        if tool_output.friend_invite and len(state.invited_friends) < self.friends_limit:
+        if tool_output.friend_invite and not state.is_friend and len(state.invited_friends) < self.friends_limit:
             tool_output.friend_invite.name = state.name
             tool_output.friend_invite.session_id = state.session_id
             tool_output.friend_invite.common_language = random.choice(
@@ -631,7 +636,7 @@ class VoidWalker():
             friend = VoidWalker(
                 friend_invite=tool_output.friend_invite
             )
-            tool_output.friend_invite.friend_session_id = friend.state.session_id
+            tool_output.friend_invite.friend_session_id = friend.session_id
             thread = threading.Thread(target=friend.walk, daemon=True)
             with _threads_lock:
                 _all_threads.append(thread)
@@ -648,7 +653,34 @@ class VoidWalker():
                 "feedback": tool_output.feedback,
                 "opened_windows": tool_output.window,
                 "invited_friends": tool_output.to_friend_invite(),
+                "current_url": tool_output.current_url or state.current_url
                 }
+
+
+    @register(_type="node", _name="summarize")
+    def summarize_node(self, state: AgentState) -> dict:
+        action = ActionModel(name=self.summarize_node._name, timestamp=datetime.now())
+        message = f"Your session is ending. Reflect on your time in the void.\n\n" \
+            f"Facts:\n" \
+            f"- Total actions taken: {len(state.actions)}\n" \
+            f"- Messages sent: {[m.message for m in state.sent_messages]}\n" \
+            f"- Windows opened: {state.opened_windows}\n" \
+            f"- Friends invited: {[f.friends_name for f in state.invited_friends]}\n" \
+            f"- Mood journey: {self.persona.mood} → {state.mood}\n" \
+            f"- Exit reason: {state.exit_reason}\n\n" \
+            "Write a short summary answering:\n" \
+            "What you actually did (factual, 2-3 sentences)\n" \
+            "How it felt, in your own voice (personal, 2-3 sentences)\n" \
+            "Keep it honest and true to your persona."
+        response = self.call_llm(message=message, output_schema=AnswerModel)
+        action.llm_prompt = message
+        action.llm_response = response
+        self.log_action(action)
+
+        return {
+            "actions": action,
+            "summary": response.answer
+        }
 
 
     def build_graph(self) -> Any:
@@ -660,7 +692,7 @@ class VoidWalker():
         self.builder.add_conditional_edges("decide_open_website", 
                                       self.true_false_router, {
                                           True: "initialize_tools", 
-                                          False: END})
+                                          False: "summarize"})
         self.builder.add_edge("initialize_tools", "open_website")
         self.builder.add_edge("open_website", "observe_website")
         self.builder.add_edge("observe_website", "reflect")
@@ -678,7 +710,8 @@ class VoidWalker():
                 "close_website": "close_website",
                 "reflect": "reflect"
             })
-        self.builder.set_finish_point("close_website")
+        self.builder.add_edge("close_website", "summarize")
+        self.builder.set_finish_point("summarize")
         self.graph = self.builder.compile(debug=self.verbose)
 
         if self.verbose:
@@ -727,7 +760,7 @@ class WalkerTools:
         tool_output = ToolOutputModel()
         tool_output.tool_message = press_explore(self.driver)
         tool_output.visible_messages = read_visible_messages(self.driver)
-            
+        tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
     
 
@@ -740,7 +773,7 @@ class WalkerTools:
         tool_output = ToolOutputModel()
         tool_output.tool_message = move_around(self.driver, dx, dy)
         tool_output.visible_messages = read_visible_messages(self.driver)
-            
+        tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
     
 
@@ -785,6 +818,7 @@ class WalkerTools:
         tool_output.tool_message = "Your friend has been invited to the void."
         tool_output.visible_messages = read_visible_messages(self.driver)
         tool_output.friend_invite = invite
+        tool_output.current_url = url
 
         return tool_output.model_dump_json()
     

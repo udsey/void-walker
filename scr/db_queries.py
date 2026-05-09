@@ -1,7 +1,7 @@
 sessions = """
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id UUID PRIMARY KEY,
-                friend_session_id UUID,
+                parent_session_id UUID,
                 start_time TIMESTAMP NOT NULL,
                 end_time TIMESTAMP,
                 model_name TEXT,
@@ -9,6 +9,7 @@ sessions = """
                 name TEXT,
                 system_prompt TEXT,
                 current_url TEXT,
+                initial_url TEXT,
                 is_friend BOOLEAN DEFAULT FALSE,
                 total_actions INTEGER DEFAULT 0,
                 total_invited INTEGER DEFAULT 0,
@@ -99,7 +100,7 @@ personas = """
         attention_span VARCHAR(20),
         mood VARCHAR(50),
         is_friend BOOLEAN DEFAULT FALSE,
-        system_prompt TEXT
+        system_prompt TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 """
@@ -119,6 +120,7 @@ QUERIES = {
     "1_session_overview": """
         select
             s.session_id, s.name, s.is_friend, s.model_name, s.model_temperature,
+            s.initial_url, s.current_url,
             s.exit_reason, s.start_time, s.end_time,
             (s.end_time - s.start_time) as session_duration,
             s.total_actions, s.total_invited,
