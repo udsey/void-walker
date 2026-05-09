@@ -225,8 +225,8 @@ class AgentState(BaseModel):
     """LLM Agent State."""
 
     # Session
-    session_id: str = Field(default_factory=lambda: uuid.uuid1().hex)
-    friend_session_id: Optional[str] = None
+    session_id: Optional[str] = None
+    parent_session_id: Optional[str] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
     model_name: Optional[str] = None
@@ -238,6 +238,7 @@ class AgentState(BaseModel):
     system_prompt: Optional[str] = None
 
     # Position 
+    initial_url: Optional[str] = None
     current_url: Optional[str] = None
     
     # Reasoning
@@ -285,6 +286,7 @@ class ToolOutputModel(BaseModel):
     reply_to: Optional[str] = None
     message: Optional[str] = None
     tool_message: Optional[str] = None
+    current_url: Optional[str] = None
     visible_messages: Optional[List[str]] = []
     window: Optional[str] = None
     friend_invite: Optional[FriendInviteModel] = None

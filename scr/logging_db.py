@@ -73,11 +73,26 @@ async def setup_database() -> None:
 
 
 
+def drop_all_tables() -> None:
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            DROP TABLE IF EXISTS 
+                feedback, reflections, messages, invites, actions, personas, sessions
+            CASCADE;
+        """)
+        conn.commit()
+        logger.info("All tables dropped.")
+    finally:
+        cur.close()
+        conn.close()
+
+
 class DatabaseWriter:
 
-    def __init__(self, session_id: str):
+    def __init__(self) -> None:
         self.conn = None
-        self.session_id = session_id
         self.buffer = {
             "actions": [],
             "reflections": [],
@@ -88,9 +103,8 @@ class DatabaseWriter:
         }
     
     def add(self, event_name: str, event: dict) -> None:
-        """Add an event to buffer. Event dict should NOT contain session_id."""
-        event_with_session = {"session_id": self.session_id, **event}
-        self.buffer[event_name].append(event_with_session)
+        """Add an event to buffer."""
+        self.buffer[event_name].append(event)
 
     def init_pool(self) -> None:
         """Initialize database connection"""
@@ -102,19 +116,21 @@ class DatabaseWriter:
             raise RuntimeError("Database not initialized. Call init_pool() first.")
         
         cur = self.conn.cursor()
+        session_id = final_state.session_id
         try:
+            
             # Insert session record
             cur.execute("""
                 INSERT INTO sessions 
-                        (session_id, friend_session_id, start_time, end_time, 
+                        (session_id, parent_session_id, start_time, end_time, 
                         model_name, model_temperature, 
                         name, system_prompt, 
-                        current_url, is_friend, total_actions, total_invited, 
+                        initial_url, current_url, is_friend, total_actions, total_invited, 
                         exit_reason, summary)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (self.session_id, final_state.friend_session_id, final_state.start_time, final_state.end_time,
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (final_state.session_id, final_state.parent_session_id, final_state.start_time, final_state.end_time,
                 final_state.model_name, final_state.model_temperature,
-                final_state.name, final_state.system_prompt, final_state.current_url,
+                final_state.name, final_state.system_prompt, final_state.initial_url, final_state.current_url,
                 final_state.is_friend, len(final_state.actions),
                 len(final_state.invited_friends), final_state.exit_reason, final_state.summary))
             # Insert persona record 
@@ -126,7 +142,7 @@ class DatabaseWriter:
                                         social_tendency, attention_span, mood, 
                                         is_friend, system_prompt)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """, (p['session_id'], p['timestamp'], p['name'], p['age'],
+                """, (session_id, p['timestamp'], p['name'], p['age'],
                     p['gender'], p['country'], p['mother_language'],
                     p['second_languages'], p['archetype'], p['social_tendency'],
                     p['attention_span'], p['mood'], p['is_friend'], p['system_prompt']))
@@ -134,7 +150,7 @@ class DatabaseWriter:
             # Batch insert actions - convert dicts to tuples
             if self.buffer["actions"]:
                 actions_data = [(
-                    d['session_id'], d['name'], d['timestamp'], d['llm_prompt'],
+                    session_id, d['name'], d['timestamp'], d['llm_prompt'],
                     d['llm_answer'], d['llm_reason'], d['function_result']
                 ) for d in self.buffer["actions"]]
                 execute_values(cur, """
@@ -146,7 +162,7 @@ class DatabaseWriter:
             # Batch insert reflections
             if self.buffer["reflections"]:
                 reflections_data = [(
-                    d['session_id'], d['timestamp'], d['action_name'],
+                    session_id, d['timestamp'], d['action_name'],
                     d['mood_before'], d['mood_after'], d['reflection']
                 ) for d in self.buffer["reflections"]]
                 execute_values(cur, """
@@ -158,7 +174,7 @@ class DatabaseWriter:
             # Batch insert messages
             if self.buffer["messages"]:
                 messages_data = [(
-                    d['session_id'], d['timestamp'], d['message'], d['reply_to'],
+                    session_id, d['timestamp'], d['message'], d['reply_to'],
                     d['is_sent'], d['last_read_messages']
                 ) for d in self.buffer["messages"]]
                 execute_values(cur, """
@@ -170,7 +186,7 @@ class DatabaseWriter:
             # Batch insert invites
             if self.buffer["invites"]:
                 invites_data = [(
-                    d['session_id'], d['timestamp'], d['name'], d['friends_name'],
+                    session_id, d['timestamp'], d['name'], d['friends_name'],
                     d['common_language'], d['shared_url'], d['message'], d['friend_session_id']
                 ) for d in self.buffer["invites"]]
                 execute_values(cur, """
@@ -182,7 +198,7 @@ class DatabaseWriter:
             # Batch insert feedback
             if self.buffer["feedback"]:
                 feedback_data = [(
-                    d['session_id'], d['timestamp'], d['feedback_text']
+                    session_id, d['timestamp'], d['feedback_text']
                 ) for d in self.buffer["feedback"]]
                 execute_values(cur, """
                     INSERT INTO feedback (session_id, timestamp, feedback_text)
@@ -193,11 +209,11 @@ class DatabaseWriter:
             
             # Clear buffer after successful write
             self.buffer = {k: [] for k in self.buffer}
-            logger.info(f"Session {self.session_id} saved to DB")
+            logger.info(f"Session {session_id} saved to DB")
             
         except Exception as e:
             self.conn.rollback()
-            logger.error(f"Failed to save session {self.session_id}: {e}")
+            logger.error(f"Failed to save session {session_id}: {e}")
             raise e
         finally:
             cur.close()

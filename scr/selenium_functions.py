@@ -246,3 +246,7 @@ def move_around(driver: Remote, dx: int, dy: int) -> str:
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.move_around.on_fail
+
+
+def get_current_url(driver) -> str:
+    return driver.current_url
