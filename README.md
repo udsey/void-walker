@@ -65,21 +65,19 @@ Each session generates a unique persona composed of randomized traits:
 | Field | Options |
 |---|---|
 | Generation | Boomer · Gen X · Millennial · Gen Z |
-| Country + Language | Random, language derived from country |
+| Country + Language | Random country; mother language derived from it; optional second languages from a shared pool |
 | Archetype | wanderer · philosopher · trickster · romantic · skeptic · socialite · ghost · poet |
 | Mood | curious · melancholic · restless · euphoric · anxious · bored · nostalgic · playful |
 | Social tendency | shy · neutral · extrovert |
 | Attention span | low · medium · high |
 
-Mood can drift over the session via the `reflect` node.
 
-Friend sessions receive a separate randomly assigned persona — guaranteed to share a common language with the inviting walker — and an additional entry decision: open or ignore the invite.
+The full persona — including the rendered system prompt — is snapshotted into the `personas` table at session start. Mood can drift over the session via the `reflect` node and is logged per-action in `reflections`. The system prompt is injected into every LLM call; the archetype key is never passed, only its behavioral description.
+
+Friend sessions receive a separate randomly assigned persona — guaranteed to share a common language with the inviting walker — and an additional entry decision: **open or ignore** the invite.
 
 ---
 
-## State
-
-Key fields carried through the graph:
 
 ## State
 
