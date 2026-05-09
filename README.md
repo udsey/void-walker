@@ -117,6 +117,7 @@ All sessions are logged to a local PostgreSQL database (separate from void-cast)
 ---
 
 ## Dashboard
+![alt text](image-1.png)
 
 A local [Plotly Dash](https://dash.plotly.com/) app for exploring session logs.
 
@@ -129,3 +130,38 @@ A local [Plotly Dash](https://dash.plotly.com/) app for exploring session logs.
 **Mood** — Sankey diagram of mood transitions, most shifted-into moods, mood timeline by archetype.
 
 **Raw Tables** — direct view of all DB tables with sort/filter. Session IDs link directly to the session detail page.
+
+
+Yes, a small Usage section with the make commands is useful. Something like:
+
+
+## Configuration
+
+**`.env`** — API keys and database connection:
+```env
+GROQ_API_KEY=
+GOOGLE_API_KEY=
+DEEPSEEK_API_KEY=
+DB_USER=
+DB_PASSWORD=
+DB_NAME=
+DB_HOST=
+DB_PORT=
+```
+
+**`config.yaml`** — walker behavior and LLM settings:
+- `llm_config` — model type (`local` · `groq` · `gemini` · `deepseek`), model name, temperature
+- `walkers_config` — action limit, time limit, friend/walker caps, verbose mode
+- `root_url` — target site
+- `status_config` — per-action success/fail messages fed back to the LLM
+
+
+## Usage
+
+```bash
+make setup-db          # create schema and tables
+make run-walkers n=3   # run 3 consecutive walkers (default: 1)
+make dashboard         # start the dash dashboard
+make recreate-db       # drop and recreate all tables
+make report session_id=<id>  # generate report for a session
+```
