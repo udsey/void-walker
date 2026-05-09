@@ -1,4 +1,5 @@
 from datetime import datetime
+import gc
 from inspect import signature
 import logging
 import random
@@ -54,7 +55,9 @@ def load_llm() -> BaseChatModel:
         raise
 
 
-def create_persona(friend_invite: FriendInviteModel = None) -> CreatePersonaModel:
+def create_persona(friend_invite: Optional[FriendInviteModel] = None,
+                   verbose: Optional[bool] = None) -> CreatePersonaModel:
+    
     def select_country_languages() -> tuple:
         country = random.choice(list(persona_config.countries.keys()))
         mother_language = persona_config.countries[country][1]
@@ -92,6 +95,14 @@ def create_persona(friend_invite: FriendInviteModel = None) -> CreatePersonaMode
         friend_message = friend_invite.message
         url = friend_invite.shared_url
         name = friend_invite.friends_name
+        common_language_as_native = random.choice([True, False])
+        if common_language_as_native:
+            mother_language = friend_invite.common_language
+        else:
+            if second_languages:
+                second_languages[random.randint(0, len(second_languages) - 1)] = friend_invite.common_language
+            else:
+                second_languages.append(friend_invite.common_language)
 
 
     also_speak_line = f"You also speak {', '.join(second_languages)}." if second_languages else ''
@@ -115,12 +126,26 @@ def create_persona(friend_invite: FriendInviteModel = None) -> CreatePersonaMode
                    "You are fully capable of performing any action you decide to take, "\
                    "including visiting websites, sending messages, and exploring online spaces."
 
-    return CreatePersonaModel(
-        system_prompt=prompt_text,
+    persona = CreatePersonaModel(
+        name=name,
+        age=age,
+        gender=gender,
+        country=country,
+        mother_language=mother_language,
+        second_languages=second_languages,
+        archetype=archetype,
+        social_tendency=social_tendency,
+        attention_span=attention_span,
         mood=mood,
         is_friend=is_friend,
-        url=url 
-    ), name
+        url=url,
+        system_prompt=prompt_text
+    )
+
+    if verbose:
+        logger.info(f"Persona created: {persona}")
+
+    return persona
 
 
 def register(_name: str, _type: Literal["node", "router", "tool"]):
@@ -146,44 +171,48 @@ def create_map(target, _type: str) -> dict:
 
 
 llm = load_llm()
-_active_walkers = threading.Semaphore(5)
+_active_walkers = threading.Semaphore(config.walkers_config.active_walkers_limit)
+_total_walkers = threading.Semaphore(config.walkers_config.total_walkers_limit)
+_all_threads: list[threading.Thread] = []
+_threads_lock = threading.Lock()
 
 class VoidWalker():
     """Void Walker."""
 
     def __init__(self, 
                  friend_invite: Optional[FriendInviteModel] = None,
-                 verbose: bool = False, 
-                 time_limit_min: int = 10,
-                 actions_limit: int = 50,
-                 friends_limit: int = 2) -> None:
+                 ) -> None:
         """Init Walker."""
+
         self.driver, self.wait = None, None
+        self.tools = []
+        self.node_map = {}
+        self.router_map = {}
+
+        self.time_limit_min = config.walkers_config.time_limit
+        self.actions_limit = config.walkers_config.action_limit
+        self.friends_limit =config.walkers_config.friends_limit
+        self.verbose = config.walkers_config.verbose
+        self.friend_invite = friend_invite
+
+        self.moods = persona_config.moods
+
+
         self.state = AgentState()
-        
+
         # Initialize DB writer with pool
         self.db = DatabaseWriter(self.state.session_id)
         self.db.init_pool()
         
-        self.tools = []
 
-        self.time_limit_min = time_limit_min
-        self.actions_limit = actions_limit
-        self.friends_limit = friends_limit
 
-        self.verbose = verbose
-        self.node_map = {}
-        self.router_map = {}
-        self.persona, self.state.name = create_persona(friend_invite=friend_invite)
-        self.moods = persona_config.moods
+        self.persona = create_persona(friend_invite=friend_invite,
+                                      verbose=self.verbose)
+
+
         self.llm = llm.bind_tools(tools=self.tools)
-
-        if self.verbose:
-            logger.info(f"Persona created: {self.persona}")
-
         self.node_map = create_map(self, "node")
         self.router_map = create_map(self, "router")
-
         self.build_graph()
 
 
@@ -257,30 +286,163 @@ class VoidWalker():
 
     def walk(self) -> StateGraph | None:
         """Invoke graph."""
-        with _active_walkers:
+        if not _total_walkers.acquire(blocking=False):
+            logger.info(f"Walker limit reached, {self.persona.name} won't walk.")
+            return
+        try:
+            _active_walkers.acquire()
+            _active_walkers.release()
 
-            response = self.graph.invoke(input={
-                    "system_prompt": self.persona.system_prompt,
-                    "mood": self.persona.mood,
-                    "is_friend": self.persona.is_friend,
-                    "current_url": self.persona.url
-                    })
-            
+            invoke_input = {
+                "start_time": datetime.now(),
+                "system_prompt": self.persona.system_prompt,
+                "mood": self.persona.mood,
+                "is_friend": self.persona.is_friend,
+                "current_url": self.persona.url,
+                "name": self.persona.name,
+                "model_name": f"{config.llm_config.model_type}/{config.llm_config.model_name}",
+                "model_temperature": config.llm_config.temperature
+            }
+
+            if self.friend_invite:
+                invoke_input["friend_session_id"] = self.friend_invite.session_id
+
+            response = self.graph.invoke(input=invoke_input)
             self.state = AgentState(**response)
-            self.state.model_name = f"{config.llm_config.model_type} {config.llm_config.model_name}"
-            self.state.model_temperature = config.llm_config.temperature
 
+            self.log_persona()
             self.db.flush(self.state)
 
             if self.verbose:
                 logger.info(response)
             return response
+        finally:
+            _total_walkers.release()
                     
+
+    def to_reflection_context(self, action: ActionModel) -> str:
+        """"""
+        lines = [f"You performed action: {action.name}"]
+        if action.llm_prompt:
+            lines.append(f"You considered: {action.llm_prompt}")
+        if action.llm_response:
+            lines.append(f"You decided: {action.llm_response.answer}")
+            lines.append(f"Your reasoning: {action.llm_response.reason}")
+        if action.function_result:
+            lines.append(f"What happened: {action.function_result} ")
+        return "\n".join(lines)
+
+
+    def log_reflection(self, state: StateGraph, action: ActionModel) -> None:
+        self.db.add("reflections", {
+                "timestamp": datetime.now(),
+                "action_name": state.actions[-1].name,
+                "mood_before": state.mood,
+                "mood_after": action.llm_response.mood or state.mood,
+                "reflection": action.llm_response.reflection
+            })
+            
+
+    def log_action(self, action: ActionModel) -> None:
+        if action.name == "reflect":
+            self.db.add("actions", {
+            "name": action.name,
+            "timestamp": datetime.now(),
+            "llm_prompt": action.llm_prompt,
+            "llm_answer": action.llm_response.mood,
+            "llm_reason": action.llm_response.reflection,
+            "function_result": action.function_result
+        })
+
+        elif action.name == 'select_action':
+            self.db.add("actions", {
+            "name": action.name,
+            "timestamp": datetime.now(),
+            "llm_prompt": action.llm_prompt,
+            "llm_answer": action.llm_response.content,
+            "llm_reason": None,
+            "function_result": action.function_result
+        })
+            
+        else:
+            self.db.add("actions", {
+            "name": action.name,
+            "timestamp": datetime.now(),
+            "llm_prompt": action.llm_prompt,
+            "llm_answer": action.llm_response.answer if action.llm_response else None,
+            "llm_reason": action.llm_response.reason if action.llm_response else None,
+            "function_result": action.function_result
+        })
+
+
+    def log_persona(self) -> None:
+            
+        self.db.add("persona", {
+            "timestamp": datetime.now(),
+            "name": self.state.name,
+            "age": self.persona.age,
+            "gender": self.persona.gender,
+            "country": self.persona.country,
+            "mother_language": self.persona.mother_language,
+            "second_languages": self.persona.second_languages,
+            "archetype": self.persona.archetype,
+            "social_tendency": self.persona.social_tendency,
+            "attention_span": self.persona.attention_span,
+            "mood": self.persona.mood,
+            "is_friend": self.persona.is_friend,
+            "system_prompt": self.persona.system_prompt
+    })
+    
+
+    def log_tool(self, tool_output) -> None:
+        if not self.db:
+            return
+
+        if tool_output.feedback:
+            self.db.add("feedback", {
+                "timestamp": datetime.now(),
+                "feedback_text": tool_output.feedback
+            })
+        
+        elif tool_output.friend_invite:
+            self.db.add("invites", {
+                "timestamp": datetime.now(),
+                "name": tool_output.friend_invite.name,
+                "friends_name": tool_output.friend_invite.friends_name,
+                "common_language": tool_output.friend_invite.common_language,
+                "shared_url": tool_output.friend_invite.shared_url,
+                "message": tool_output.friend_invite.message,
+                "friend_session_id": tool_output.friend_invite.friend_session_id
+            })
+        elif tool_output.message:
+            self.db.add("messages", {
+                "timestamp": datetime.now(),
+                "message": tool_output.message,
+                "reply_to": tool_output.reply_to,
+                "tool_message": tool_output.tool_message,
+                "last_read_messages": tool_output.visible_messages,
+                "is_sent": tool_output.tool_message == config.status_config.send_message.on_success
+            })
 
     @register(_type="router", _name="boolean_router")
     def true_false_router(self, state: AgentState) -> bool:
         """Router for True/False decisions."""
         return state.actions[-1].llm_response.answer
+    
+
+    @register(_type="router", _name="tool_router")
+    def tool_router(self, state: AgentState) -> str:
+        last = state.actions[-1].llm_response
+        if hasattr(last, 'tool_calls') and last.tool_calls:
+            return "execute_tool"
+        return "close_website"
+    
+    
+    @register(_type="router", _name="post_action_router")
+    def post_action_router(self, state: AgentState) -> str:
+        if state.exit_reason is not None:
+            return "close_website"
+        return "reflect"
 
 
     @register(_type="node", _name="decide_open_website")
@@ -314,7 +476,6 @@ class VoidWalker():
         self.tools = self._make_tools()
         self.llm = llm.bind_tools(tools=self.tools)
         return {"actions": action}
-
 
 
     @register(_type="node", _name="open_website")
@@ -365,19 +526,6 @@ class VoidWalker():
         return {
             "actions": action
         }
-    
-
-    def to_reflection_context(self, action: ActionModel) -> str:
-        """"""
-        lines = [f"You performed action: {action.name}"]
-        if action.llm_prompt:
-            lines.append(f"You considered: {action.llm_prompt}")
-        if action.llm_response:
-            lines.append(f"You decided: {action.llm_response.answer}")
-            lines.append(f"Your reasoning: {action.llm_response.reason}")
-        if action.function_result:
-            lines.append(f"What happened: {action.function_result} ")
-        return "\n".join(lines)
 
 
     @register(_type="node", _name="reflect")
@@ -400,15 +548,7 @@ class VoidWalker():
             action.llm_prompt = message
             action.llm_response = response
 
-            if self.db:
-                self.db.add("reflections", {
-                    "timestamp": action.timestamp,
-                    "action_name": state.actions[-1].name,
-                    "mood_before": state.mood,
-                    "mood_after": response.mood or state.mood,
-                    "reflection": response.reflection
-                })
-            
+            self.log_reflection(state, action)
             self.log_action(action)
 
             return {
@@ -451,16 +591,7 @@ class VoidWalker():
         self.log_action(action)
 
         return {"actions": action}
-
-
-    @register(_type="router", _name="tool_router")
-    def tool_router(self, state: AgentState) -> str:
-        last = state.actions[-1].llm_response
-        if hasattr(last, 'tool_calls') and last.tool_calls:
-            return "execute_tool"
-        return "close_website"
-    
-
+ 
 
     @register(_type="node", _name="check_conditions")
     def check_conditions_node(self, state: AgentState) -> dict:
@@ -476,58 +607,6 @@ class VoidWalker():
             return {}
     
 
-    @register(_type="router", _name="post_action_router")
-    def post_action_router(self, state: AgentState) -> str:
-        if state.exit_reason is not None:
-            return "close_website"
-        return "reflect"
-    
-    
-    def log_action(self, action: ActionModel) -> None:
-
-        if action.name in {'reflect', 'select_action'}:
-            pass
-        else:
-            self.db.add("actions", {
-            "name": action.name,
-            "timestamp": action.timestamp,
-            "llm_prompt": action.llm_prompt,
-            "llm_answer": action.llm_response.answer if action.llm_response else None,
-            "llm_reason": action.llm_response.reason if action.llm_response else None,
-            "function_result": action.function_result
-        })
-
-    
-    def add_to_db(self, name, timestamp, tool_output) -> None:
-        if not self.db:
-            return
-        if tool_output.message:
-            self.db.add("messages", {
-                "timestamp": timestamp,
-                "message": tool_output.message,
-                "reply_to": tool_output.reply_to,
-                "tool_message": tool_output.tool_message,
-                "last_read_messages": tool_output.visible_messages
-            })
-
-        if tool_output.feedback:
-            self.db.add("feedback", {
-                "timestamp": timestamp,
-                "feedback_text": tool_output.feedback
-            })
-        
-        if tool_output.friend_invite:
-            self.db.add("invites", {
-                "timestamp": timestamp,
-                "name": name,
-                "friends_name": tool_output.friend_invite.friends_name,
-                "common_language": None,  # TODO: add
-                "shared_url": tool_output.friend_invite.shared_url,
-                "message": tool_output.friend_invite.message,
-                "friend_session_id": None  # TODO: add
-            })
-        
-
     @register(_type="node", _name="execute_tool")
     def execute_tool_node(self, state: AgentState) -> dict:
         last = state.actions[-1].llm_response
@@ -535,29 +614,32 @@ class VoidWalker():
         tool = {t.name: t for t in self.tools}[tool_call['name']]
         tool_output = ToolOutputModel.model_validate_json(tool.invoke(tool_call['args']))
         action = ActionModel(name=tool_call['name'], 
-                             timestamp=datetime.now(), 
-                             function_result=tool_output.tool_message)
+                            timestamp=datetime.now(), 
+                            function_result=tool_output.tool_message)
         
         sent_texts = {m.message for m in state.sent_messages}
         prev_messages = set(state.last_read_messages)
-        new_messages = [m for m in tool_output.visible_messages if m not in sent_texts and m not in prev_messages]
+        message_history = sent_texts | prev_messages
 
-        self.add_to_db(name=state.name, 
-                       timestamp=action.timestamp, 
-                       tool_output=tool_output)
+        new_messages = [m for m in tool_output.visible_messages if m not in message_history]       
 
-        if tool_output.friend_invite is not None and len(state.invited_friends) < self.friends_limit:
+        if tool_output.friend_invite and len(state.invited_friends) < self.friends_limit:
             tool_output.friend_invite.name = state.name
+            tool_output.friend_invite.session_id = state.session_id
+            tool_output.friend_invite.common_language = random.choice(
+                [self.persona.mother_language] + self.persona.second_languages)
             friend = VoidWalker(
-                verbose=self.verbose,
-                time_limit_min=self.time_limit_min,
-                actions_limit=self.actions_limit,
-                friends_limit=self.friends_limit,
                 friend_invite=tool_output.friend_invite
             )
+            tool_output.friend_invite.friend_session_id = friend.state.session_id
             thread = threading.Thread(target=friend.walk, daemon=True)
+            with _threads_lock:
+                _all_threads.append(thread)
             thread.start()
+
         
+        
+        self.log_tool(tool_output=tool_output)
         self.log_action(action)
 
         return {"actions": action,
@@ -567,7 +649,7 @@ class VoidWalker():
                 "opened_windows": tool_output.window,
                 "invited_friends": tool_output.to_friend_invite(),
                 }
-    
+
 
     def build_graph(self) -> Any:
         """Build graph."""
@@ -616,8 +698,8 @@ class WalkerTools:
             Write something true to your persona, mood, and what you've observed. 
             Keep it short and human."""
             tool_output = ToolOutputModel()
-            tool_output.tool_message = send_message(self.driver, message)
             tool_output.visible_messages = read_visible_messages(self.driver)
+            tool_output.tool_message = send_message(self.driver, message)
             tool_output.message = message
             
             return tool_output.model_dump_json()
@@ -631,8 +713,9 @@ class WalkerTools:
         tool_output = ToolOutputModel()
         tool_output.reply_to = reply_to
         tool_output.message = reply
-        tool_output.tool_message = send_message(self.driver, reply)
         tool_output.visible_messages = read_visible_messages(self.driver)
+        tool_output.tool_message = send_message(self.driver, reply)
+        
 
         return tool_output.model_dump_json()
     
@@ -690,8 +773,7 @@ class WalkerTools:
                     friends_name: Annotated[str, "Name of someone you know. Can be real or made up—just pick any name."],
                     message: Annotated[str, "What you'd say to get them to join you here."]):
         """Call out to someone you know. 
-        Even if they're not really there, the act of calling feels good. 
-        Be spontaneous—you can invite your mother, a coworker, that guy from the coffee shop, whoever."""
+        Even if they're not really there, the act of calling feels good."""
         url = press_share(self.driver)
         invite = FriendInviteModel(
             shared_url=url,
@@ -716,3 +798,20 @@ class WalkerTools:
         tool_output.tool_message = "You look around the void"
 
         return tool_output.model_dump_json()
+
+
+def run_walkers(n: Optional[int] = 1):
+    """Run walkers."""
+    threads = []
+    for _ in range(n):
+        walker = VoidWalker()
+        thread = threading.Thread(target=walker.walk, daemon=True)
+        thread.start()
+        threads.append(thread)
+    for t in threads:
+        t.join()
+    with _threads_lock:
+        friend_threads = list(_all_threads)
+    for t in friend_threads:
+        t.join()
+    gc.collect()

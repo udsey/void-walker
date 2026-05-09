@@ -1,13 +1,15 @@
 import asyncio
+import csv
 import inspect
+import os
 from typing import Any
 import asyncpg
 from asyncpg import Connection
 import logging
 import psycopg2
 from scr.models import AgentState
-from scr.setup import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
-from scr.db_schemas import *
+from scr.setup import DATA_DIR, DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+from scr.db_queries import *
 from psycopg2.extras import execute_values
 
 
@@ -20,9 +22,6 @@ DB_CONFIG = {
     "host": DB_HOST,
     "port": DB_PORT
 }
-
-logger.info(DB_CONFIG)
-
 
 
 async def create_database() -> None:
@@ -50,7 +49,7 @@ async def create_schema() -> None:
     conn = await asyncpg.connect(**DB_CONFIG)
 
     try:
-        for table in [sessions, actions, feedback, reflections, invites, messages]:
+        for table in [sessions, actions, feedback, reflections, invites, messages, personas]:
             await conn.execute(table)
             table_name = table.split(' (')[0].split()[-1]
             logger.info(f"Table created: {table_name}")
@@ -84,7 +83,8 @@ class DatabaseWriter:
             "reflections": [],
             "messages": [],
             "invites": [],
-            "feedback": []
+            "feedback": [],
+            "persona": []
         }
     
     def add(self, event_name: str, event: dict) -> None:
@@ -105,14 +105,31 @@ class DatabaseWriter:
         try:
             # Insert session record
             cur.execute("""
-                INSERT INTO sessions (session_id, start_time, end_time, name, persona, 
-                                    current_url, is_friend, total_actions, total_invited, 
-                                    exit_reason, summary)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (self.session_id, final_state.start_time, final_state.end_time,
+                INSERT INTO sessions 
+                        (session_id, friend_session_id, start_time, end_time, 
+                        model_name, model_temperature, 
+                        name, system_prompt, 
+                        current_url, is_friend, total_actions, total_invited, 
+                        exit_reason, summary)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (self.session_id, final_state.friend_session_id, final_state.start_time, final_state.end_time,
+                final_state.model_name, final_state.model_temperature,
                 final_state.name, final_state.system_prompt, final_state.current_url,
-                final_state.is_friend, len(final_state.actions), 
+                final_state.is_friend, len(final_state.actions),
                 len(final_state.invited_friends), final_state.exit_reason, final_state.summary))
+            # Insert persona record 
+            if self.buffer["persona"]:
+                p = self.buffer["persona"][0]
+                cur.execute("""
+                    INSERT INTO personas (session_id, timestamp, name, age, gender, country,
+                                        mother_language, second_languages, archetype, 
+                                        social_tendency, attention_span, mood, 
+                                        is_friend, system_prompt)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (p['session_id'], p['timestamp'], p['name'], p['age'],
+                    p['gender'], p['country'], p['mother_language'],
+                    p['second_languages'], p['archetype'], p['social_tendency'],
+                    p['attention_span'], p['mood'], p['is_friend'], p['system_prompt']))
             
             # Batch insert actions - convert dicts to tuples
             if self.buffer["actions"]:
@@ -142,7 +159,7 @@ class DatabaseWriter:
             if self.buffer["messages"]:
                 messages_data = [(
                     d['session_id'], d['timestamp'], d['message'], d['reply_to'],
-                    True, d['last_read_messages']  # is_sent always True
+                    d['is_sent'], d['last_read_messages']
                 ) for d in self.buffer["messages"]]
                 execute_values(cur, """
                     INSERT INTO messages (session_id, timestamp, message, reply_to, 
@@ -184,3 +201,29 @@ class DatabaseWriter:
             raise e
         finally:
             cur.close()
+
+
+
+def generate_report(session_id: str) -> None:
+    report_dir = os.path.join(DATA_DIR, f"report_session_id_{session_id}")
+    os.makedirs(report_dir, exist_ok=True)
+
+    conn = psycopg2.connect(**DB_CONFIG)
+    cur = conn.cursor()
+
+    try:
+        for name, query in QUERIES.items():
+            cur.execute(query, (session_id,))
+            rows = cur.fetchall()
+            columns = [desc[0] for desc in cur.description]
+
+            filepath = os.path.join(report_dir, f"{name}.csv")
+            with open(filepath, "w", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow(columns)
+                writer.writerows(rows)
+
+        print(f"Report saved to {report_dir}")
+    finally:
+        cur.close()
+        conn.close()
