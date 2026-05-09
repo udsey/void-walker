@@ -117,7 +117,7 @@ All sessions are logged to a local PostgreSQL database (separate from void-cast)
 ---
 
 ## Dashboard
-![alt text](image-1.png)
+<img width="1792" height="959" alt="image" src="https://github.com/user-attachments/assets/2f4a20f8-5529-4f69-ac80-c2ca70730e00" />
 
 A local [Plotly Dash](https://dash.plotly.com/) app for exploring session logs.
 
