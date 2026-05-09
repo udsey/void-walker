@@ -131,9 +131,7 @@ A local [Plotly Dash](https://dash.plotly.com/) app for exploring session logs.
 
 **Raw Tables** — direct view of all DB tables with sort/filter. Session IDs link directly to the session detail page.
 
-
-Yes, a small Usage section with the make commands is useful. Something like:
-
+---
 
 ## Configuration
 
@@ -155,6 +153,7 @@ DB_PORT=
 - `root_url` — target site
 - `status_config` — per-action success/fail messages fed back to the LLM
 
+---
 
 ## Usage
 
