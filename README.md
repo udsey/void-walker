@@ -159,7 +159,7 @@ DB_PORT=
 
 ```bash
 make setup-db          # create schema and tables
-make run-walkers n=3   # run 3 consecutive walkers (default: 1)
+make run-walkers n=3   # run 3 walkers in parallel (default: 1)
 make dashboard         # start the dash dashboard
 make recreate-db       # drop and recreate all tables
 make report session_id=<id>  # generate report for a session
