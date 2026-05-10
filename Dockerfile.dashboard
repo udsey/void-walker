@@ -9,4 +9,4 @@ RUN pip install uv && uv sync --frozen
 COPY dashboard/ dashboard/
 COPY configs/ configs/
 
-CMD ["uv", "run", "python", "-c", "from dashboard.app import app; app.run(debug=False)"]
+CMD ["uv", "run", "python", "-c", "from dashboard.app import app; app.run(debug=False, host='0.0.0.0')"]

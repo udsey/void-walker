@@ -188,6 +188,7 @@ class VoidWalker():
                 f"Walker limit reached, {self.persona.name} won't walk.")
             return
         try:
+            logger.info(f"Start walker with session_id: {self.session_id[:8]}")
             _active_walkers.acquire()
             _active_walkers.release()
 
@@ -536,8 +537,13 @@ class VoidWalker():
         action = ActionModel(name=self.check_conditions_node._name,
                              timestamp=datetime.now())
         elapsed = datetime.now() - state.start_time
+        n_actions = len(state.actions)
         self.log_action(action)
-        if len(state.actions) > self.actions_limit:
+        if n_actions % 10 < 2:
+            logger.info(
+                f"{self.actions_limit - n_actions} till action limit for "
+                f"walker {self.session_id[:8]}.")
+        if n_actions > self.actions_limit:
             return {"exit_reason": "action limit"}
         elif elapsed.total_seconds() >= self.time_limit_min * 60:
             return {"exit_reason": "time limit"}

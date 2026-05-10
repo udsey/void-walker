@@ -3,34 +3,27 @@
 import os
 
 import pandas as pd
-import psycopg2
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 load_dotenv()
 
-DB_CONFIG = {
-    "user": os.getenv('DB_USER'),
-    "password": os.getenv('DB_PASSWORD'),
-    "database": os.getenv('DB_NAME'),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT")
-}
-
+DATABASE_URL = (
+    f"postgresql+psycopg2://{os.getenv('DB_USER')}:"
+    f"{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}:"
+    f"{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}")
+engine = create_engine(DATABASE_URL)
 
 
 def query(sql: str, params: tuple = None) -> pd.DataFrame:
     """Query db."""
-    conn = psycopg2.connect(**DB_CONFIG)
-    try:
-        df = pd.read_sql(sql, conn, params=params)
-        for col in df.select_dtypes(include=["timedelta"]).columns:
-            df[col] = df[col].astype(str)
-        for col in df.select_dtypes(include=["object"]).columns:
-            df[col] = df[col].apply(
-                lambda x: ", ".join(x) if isinstance(x, list) else x)
-        return df
-    finally:
-        conn.close()
+    df = pd.read_sql(sql, engine, params=params)
+    for col in df.select_dtypes(include=["timedelta"]).columns:
+        df[col] = df[col].astype(str)
+    for col in df.select_dtypes(include=["object"]).columns:
+        df[col] = df[col].apply(
+            lambda x: ", ".join(x) if isinstance(x, list) else x)
+    return df
 
 # ~~~~~~~~~~~~~~~~~~ RAW Tables Page ~~~~~~~~~~~~~~~~~~
 
@@ -219,7 +212,7 @@ def get_tool_usage_per_session(session_id: str) -> pd.DataFrame:
         and a.name not in ('reflect', 'select_action', 'decide_open_website',
                            'initialize_tools', 'open_website',
                            'observe_website',
-                           'close_website', 'check_conditions')
+                           'close_website', 'check_conditions', 'summarize')
         group by a.name
         order by times_used desc"""
     return query(query_text, (session_id, ))

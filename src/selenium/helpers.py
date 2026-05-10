@@ -32,9 +32,11 @@ def configure_chrome() -> tuple[Chrome, WebDriverWait]:
     options.binary_location = "/usr/bin/chromium"
 
     try:
-        driver = Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver = Chrome(service=Service(ChromeDriverManager().install()),
+                        options=options)
     except Exception:
-        driver = Chrome(service=Service("/usr/bin/chromedriver"), options=options)
+        driver = Chrome(service=Service("/usr/bin/chromedriver"),
+                         options=options)
     wait = WebDriverWait(driver, config.wait_timeout)
     return driver, wait
 

@@ -12,7 +12,8 @@ dash.register_page(__name__, path="/session")
 
 session_options = [
     {"label":
-        f"{row['name']} — {row['session_id'][:8]}... — {row['start_time']}",
+        f"{row['name']} — {str(row['session_id'])[:6]}... "
+        f"— {row['start_time']}",
      "value": row["session_id"]}
     for _, row in get_sessions().iterrows()
 ]
