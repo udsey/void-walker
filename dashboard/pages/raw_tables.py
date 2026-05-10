@@ -1,6 +1,7 @@
-# raw_tables.py
+"""Raw Tables."""
 import dash
 from dash import dash_table, html
+
 from dashboard.db import raw_map
 from dashboard.styles import TABLE_STYLE
 
@@ -23,7 +24,7 @@ layout = html.Div([
                 id=f"{name.lower()}-table",
                 data=df.to_dict("records"),
                 columns=[
-                    {"name": c, "id": c, "presentation": "markdown"} 
+                    {"name": c, "id": c, "presentation": "markdown"}
                     if c == "session_id" else {"name": c, "id": c}
                     for c in df.columns
                 ],

@@ -23,3 +23,16 @@ dependencies = [
     "selenium>=4.43.0",
     "webdriver-manager>=4.0.2",
 ]
+
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors (includes E501)
+    "W",      # pycodestyle warnings (includes W291)
+    "F",      # pyflakes
+    "I",      # isort
+]
+
+# line-length goes directly under [tool.ruff], NOT [tool.ruff.lint]
+[tool.ruff]
+line-length = 79

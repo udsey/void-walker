@@ -1,13 +1,14 @@
+"""Dash App."""
+
 import dash
-from dash import Dash
 import dash_bootstrap_components as dbc
+from dash import Dash
 
 app = Dash(__name__,
            use_pages=True,
            pages_folder="pages",
            external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-import dash_bootstrap_components as dbc
 
 app.layout = dbc.Container([
     dbc.NavbarSimple(

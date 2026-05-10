@@ -36,11 +36,12 @@ PLOTLY_LAYOUT = {
     "paper_bgcolor": "#000000",
     "plot_bgcolor": "#000000",
     "font": {"color": "#cccccc", "family": "Inter"},
-    "colorway": ["#7c6fcd", "#5b8fa8", "#7a9e7e", "#c4956a", "#b07090", "#8fa8c8", "#a89070", "#6b9e9e"]
+    "colorway": ["#7c6fcd", "#5b8fa8", "#7a9e7e", "#c4956a",
+                  "#b07090", "#8fa8c8", "#a89070", "#6b9e9e"]
 }
 
 
-mood_colors = {
+MOOD_COLORS = {
     "curious": "#7ec8e3",
     "melancholic": "#a78bfa",
     "restless": "#f97316",
@@ -50,3 +51,17 @@ mood_colors = {
     "nostalgic": "#34d399",
     "playful": "#f472b6",
 }
+
+
+COLOR_SEQ = ["#7c6fcd", "#7a9e7e", "#c4956a", "#b07090",
+              "#8fa8c8", "#a89070", "#6b9e9e", "#9e7a7a", "#7a8fa8"]
+
+
+GEO = dict(
+        bgcolor="#000000",
+        lakecolor="#000000",
+        landcolor="#1a1a1a",
+        showframe=False,
+        showcoastlines=True,
+        coastlinecolor="#333333",
+    )

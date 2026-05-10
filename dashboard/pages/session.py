@@ -1,16 +1,19 @@
-from typing import Any
 import io
 import zipfile
+from typing import Any
 
 import dash
-from dash import dash_table, html, dcc, callback, Input, Output, ctx
+from dash import Input, Output, callback, ctx, dash_table, dcc, html
+
 from dashboard.db import get_sessions, session_map
 from dashboard.styles import TABLE_STYLE
 
 dash.register_page(__name__, path="/session")
 
 session_options = [
-    {"label": f"{row['name']} — {row['session_id'][:8]}... — {row['start_time']}", "value": row["session_id"]}
+    {"label":
+        f"{row['name']} — {row['session_id'][:8]}... — {row['start_time']}",
+     "value": row["session_id"]}
     for _, row in get_sessions().iterrows()
 ]
 
@@ -56,6 +59,7 @@ def set_from_url(search) -> Any:
     Input("session-dropdown", "value")
 )
 def load_session(session_id) -> html.P:
+    """Load session."""
     if not session_id:
         return html.P("Select a session to view details.")
 
@@ -89,10 +93,12 @@ def load_session(session_id) -> html.P:
     prevent_initial_call=True
 )
 def download_report(n_clicks, session_id):
+    """Download report."""
     if ctx.triggered_id != "generate-report-btn":
         return None, ""
     if not session_id:
-        return None, html.P("select a session first.", style={"color": "#b07090"})
+        return None, html.P("select a session first.",
+                            style={"color": "#b07090"})
 
     tables = {name: fn(session_id) for name, fn in session_map.items()}
 
@@ -104,4 +110,5 @@ def download_report(n_clicks, session_id):
             zf.writestr(f"{name}.csv", csv_buffer.getvalue())
 
     zip_buffer.seek(0)
-    return dcc.send_bytes(zip_buffer.read(), f"session_{session_id[:8]}.zip"), ""
+    return dcc.send_bytes(zip_buffer.read(),
+                          f"session_{session_id[:8]}.zip"), ""

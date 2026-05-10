@@ -1,9 +1,12 @@
+"""Persona."""
+
 import dash
+import dash_bootstrap_components as dbc
 import plotly.express as px
 from dash import dcc, html
-import dash_bootstrap_components as dbc
+
 from dashboard.db import personas_map
-from dashboard.styles import PLOTLY_LAYOUT
+from dashboard.styles import GEO, PLOTLY_LAYOUT
 
 dash.register_page(__name__, path="/personas")
 
@@ -21,14 +24,7 @@ world_fig.update_layout(
     **PLOTLY_LAYOUT,
     height=500,
     margin={"r": 0, "t": 40, "l": 0, "b": 0},
-    geo=dict(
-        bgcolor="#000000",
-        lakecolor="#000000",
-        landcolor="#1a1a1a",
-        showframe=False,
-        showcoastlines=True,
-        coastlinecolor="#333333",
-    )
+    geo=GEO
 )
 
 archetype_fig = px.bar(
@@ -57,7 +53,11 @@ layout = html.Div([
     html.H1("personas", className="mb-4"),
 
     dbc.Row([
-        dbc.Col(dcc.Graph(figure=world_fig, config={"responsive": True}, style={"width": "100%"}), width=12, style={"padding": "0", "margin": "0"}),
+        dbc.Col(dcc.Graph(figure=world_fig,
+                          config={"responsive": True},
+                          style={"width": "100%"}),
+                          width=12,
+                          style={"padding": "0", "margin": "0"}),
     ], className="mb-4"),
 
     dbc.Row([
