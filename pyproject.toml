@@ -9,6 +9,8 @@ dependencies = [
     "dash>=4.1.0",
     "dash-bootstrap-components>=2.0.4",
     "dotenv>=0.9.9",
+    "gender-detector>=0.1.0",
+    "gender-guesser>=0.4.0",
     "langchain>=1.2.17",
     "langchain-deepseek>=1.0.1",
     "langchain-google-genai>=4.2.2",
@@ -22,6 +24,7 @@ dependencies = [
     "psycopg2-binary>=2.9.12",
     "selenium>=4.43.0",
     "sqlalchemy>=2.0.49",
+    "transliterate>=1.10.2",
     "webdriver-manager>=4.0.2",
 ]
 

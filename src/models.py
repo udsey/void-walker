@@ -157,6 +157,12 @@ class ReflectionModel(BaseModel):
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+class GenderPrediction(BaseModel):
+    """Predicted gender from a given name."""
+    gender: Literal["male", "female"] = Field(
+        description="The predicted gender of the name")
+    confidence: float = Field(
+        description="Confidence score between 0 and 1")
 
 # ~~~~~~~~~~~~~~~~~~ State attributes ~~~~~~~~~~~~~~~~~~
 
