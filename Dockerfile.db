@@ -1,0 +1,11 @@
+FROM postgres:16
+
+RUN apt-get update && apt-get install -y postgresql-16-cron && rm -rf /var/lib/apt/lists/*
+ARG DB_NAME=void_walker
+RUN echo "shared_preload_libraries = 'pg_cron'\ncron.database_name = '${DB_NAME}'" >> /usr/share/postgresql/postgresql.conf.sample
+
+COPY src/db/sql/[0-9]*_create_*.sql /docker-entrypoint-initdb.d/
+COPY  src/db/sql/cron.sql /docker-entrypoint-initdb.d/
+
+ARG ACTIONS_LIMIT=100000
+RUN sed -i "s/__ACTIONS_LIMIT__/$ACTIONS_LIMIT/" /docker-entrypoint-initdb.d/cron.sql

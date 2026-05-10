@@ -1,9 +1,21 @@
 """DB queries."""
 
+import os
+
 import pandas as pd
 import psycopg2
+from dotenv import load_dotenv
 
-from src.db.db import DB_CONFIG
+load_dotenv()
+
+DB_CONFIG = {
+    "user": os.getenv('DB_USER'),
+    "password": os.getenv('DB_PASSWORD'),
+    "database": os.getenv('DB_NAME'),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT")
+}
+
 
 
 def query(sql: str, params: tuple = None) -> pd.DataFrame:

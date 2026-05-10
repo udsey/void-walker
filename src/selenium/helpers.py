@@ -26,8 +26,15 @@ def configure_chrome() -> tuple[Chrome, WebDriverWait]:
     }})
     if not config.walkers_config.verbose:
         options.add_argument("--headless=new")
-    driver = Chrome(service=Service(ChromeDriverManager().install()),
-                    options=options)
+
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.binary_location = "/usr/bin/chromium"
+
+    try:
+        driver = Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    except Exception:
+        driver = Chrome(service=Service("/usr/bin/chromedriver"), options=options)
     wait = WebDriverWait(driver, config.wait_timeout)
     return driver, wait
 

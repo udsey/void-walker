@@ -2,6 +2,7 @@
 
 import logging
 import os
+from pathlib import Path
 
 import yaml
 from dotenv import load_dotenv
@@ -53,11 +54,14 @@ def save_config(config: BaseModel, filename: str):
 
 BASE_DIR = os.getcwd()
 DATA_DIR = os.path.join(BASE_DIR, 'data')
+SQL_DIR = Path(os.path.join(BASE_DIR, "src/db/sql"))
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_NAME = os.getenv('DB_NAME')
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
+
+os.makedirs(DATA_DIR, exist_ok=True)
 
 path = os.path.join(BASE_DIR, 'configs/persona_config.yaml')
 persona_config = load_config_file(path)
