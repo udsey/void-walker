@@ -5,18 +5,7 @@ import logging
 import asyncpg
 import psycopg2
 
-from src.db.queries import (
-    create_actions_q,
-    create_feedback_q,
-    create_indexes_q,
-    create_invites_q,
-    create_messages_q,
-    create_personas_q,
-    create_reflections_q,
-    create_sessions_q,
-    drop_tables_q,
-)
-from src.setup import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+from src.setup import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER, SQL_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +16,7 @@ DB_CONFIG = {
     "host": DB_HOST,
     "port": DB_PORT
 }
+
 
 
 async def create_database() -> None:
@@ -52,19 +42,18 @@ async def create_database() -> None:
 async def create_schema() -> None:
     """Create all tables."""
     conn = await asyncpg.connect(**DB_CONFIG)
+    table_files = sorted(SQL_DIR.glob("[0-9]*_create_*.sql"))
 
     try:
-        for table in [create_sessions_q, create_actions_q, create_feedback_q,
-                      create_reflections_q, create_invites_q,
-                      create_messages_q, create_personas_q]:
-            await conn.execute(table)
-            table_name = table.split(' (')[0].split()[-1]
-            logger.info(f"Table created: {table_name}")
-
-        await conn.execute(create_indexes_q)
-        logger.info("Indexes created/verified")
+        for filepath in table_files:
+            query = filepath.read_text()
+            await conn.execute(query)
+            table_name = filepath.stem.split("_", 1)[1].replace("create_", "")
+            if table_name != "indexes":
+                logger.info(f"Table created: {table_name}")
+            else:
+                logger.info("Indexes created/verified")
         logger.info("All tables created successfully!")
-
     except Exception as e:
         logger.error(f"Error creating schema: {e}")
         raise
@@ -84,7 +73,8 @@ def drop_all_tables() -> None:
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
     try:
-        cur.execute(drop_tables_q)
+        query = (SQL_DIR / "drop_tables.sql").read_text()
+        cur.execute(query)
         conn.commit()
         logger.info("All tables dropped.")
     finally:

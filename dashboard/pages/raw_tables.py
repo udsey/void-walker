@@ -12,7 +12,7 @@ tables = {name: fn() for name, fn in raw_map.items()}
 for name, df in tables.items():
     if "session_id" in df.columns:
         df["session_id"] = df["session_id"].apply(
-            lambda x: f"[{x[:8]}...](/session?id={x})" if x else ""
+            lambda x: f"[{str(x)[:6]}...](/session?id={x})" if x else ""
         )
 
 layout = html.Div([

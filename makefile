@@ -1,15 +1,31 @@
-.PHONY: help setup-db drop-db recreate-db run-walkers report dashboard
+.PHONY: help setup-db drop-db recreate-db run-walkers report dashboard docker-up docker-down docker-down-volumes docker-run-walkers docker-logs docker-logs-db docker-logs-walker docker-logs-dashboard
 
 n ?= 1
+parallel ?= false
 
 help:
 	@echo ""
-	@echo "  setup-db                    		create schema and tables if not exists"
-	@echo "  drop-db                     		drop all tables"
-	@echo "  recreate-db                 		drop and recreate all tables"
-	@echo "  run-walkers n=3 parallel=True   	run n walkers, sequential by default, parallel if parallel=True"
-	@echo "  report session_id=<id>      		generate report for a session"
-	@echo "  dashboard                   		start the dash dashboard"
+	@echo "-----------------------------------------------"
+	@echo " Local Run"
+	@echo "-----------------------------------------------"
+	@echo "  make setup-db                               	create schema and tables if not exists"
+	@echo "  make drop-db                                	drop all tables"
+	@echo "  make recreate-db                            	drop and recreate all tables"
+	@echo "  make run-walkers n=3 parallel=false          	run n walkers, sequential by default"
+	@echo "  make report session_id=<id>                 	generate report for a session"
+	@echo "  make dashboard                              	start the dash dashboard"
+	@echo "-----------------------------------------------"
+	@echo " Docker Run"
+	@echo "-----------------------------------------------"
+	@echo "  make docker-up                              	build and start all containers"
+	@echo "  make docker-down                            	stop all containers"
+	@echo "  make docker-down-volumes                    	stop all containers and remove volumes"
+	@echo "  make docker-run-walkers n=3 parallel=false   	run walkers in docker"
+	@echo " ~~~~~~~~~~~~~~~~~~ Logs ~~~~~~~~~~~~~~~~~~"
+	@echo "  make docker-logs                            	follow all logs"
+	@echo "  make docker-logs-db                         	follow db logs"
+	@echo "  make docker-logs-walker                     	follow walker logs"
+	@echo "  make docker-logs-dashboard                  	follow dashboard logs"
 	@echo ""
 
 setup-db:
@@ -24,7 +40,35 @@ report:
 	@uv run python -c "from src.db.utils import generate_report; generate_report('$(session_id)')"
 
 run-walkers:
-	@uv run python -c "from src.walker.run import run_walkers; run_walkers($(n), $(parallel))"
+	@uv run python -c "from src.walker.run import run_walkers; run_walkers($(n), '$(parallel)'.lower() == 'true')"
 
 dashboard:
-	@uv run python -c "from dashboard.app import app; app.run(debug=False)"
+	@uv run python -c 'from dashboard.app import app; app.run(debug=False, host="0.0.0.0")'
+
+docker-up:
+	@docker compose up --build -d
+
+docker-down:
+	@docker compose down
+
+docker-down-volumes:
+	@docker compose down -v
+
+docker-run-walkers:
+	@docker compose run --rm \
+		-e WALKERS_N=$(n) \
+		-e WALKERS_PARALLEL=$(parallel) \
+		walker uv run python -c \
+		"import os; from src.walker.run import run_walkers; run_walkers(int(os.getenv('WALKERS_N', 1)), os.getenv('WALKERS_PARALLEL', 'false').lower() == 'true')"
+
+docker-logs:
+	@docker compose logs -f
+
+docker-logs-db:
+	@docker compose logs -f db
+
+docker-logs-walker:
+	@docker compose logs -f walker
+
+docker-logs-dashboard:
+	@docker compose logs -f dashboard

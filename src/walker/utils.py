@@ -3,6 +3,7 @@
 import logging
 from typing import Callable, Literal
 
+from dotenv import load_dotenv
 from langchain.chat_models import BaseChatModel
 from langchain_deepseek import ChatDeepSeek
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -13,6 +14,7 @@ from src.setup import config
 
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 
 def load_llm() -> BaseChatModel:
     """Load llm with params."""

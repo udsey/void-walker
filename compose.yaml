@@ -1,0 +1,54 @@
+services:
+  db:
+    container_name: void-walker-db
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+      args:
+        ACTIONS_LIMIT: ${ACTIONS_LIMIT}
+        DB_NAME: ${DB_NAME}
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5453:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  walker:
+    container_name: void-walker-walker
+    profiles: ["manual"]
+    build:
+      context: .
+      dockerfile: Dockerfile.walker
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+  dashboard:
+    container_name: void-walker-dashboard
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    ports:
+      - "8050:8050"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

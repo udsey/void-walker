@@ -7,8 +7,7 @@ import os
 import psycopg2
 
 from src.db.db import DB_CONFIG
-from src.db.queries import generate_report_q
-from src.setup import DATA_DIR
+from src.setup import DATA_DIR, SQL_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,17 @@ def generate_report(session_id: str) -> None:
     cur = conn.cursor()
 
     try:
-        for name, query in generate_report_q.items():
+        filenames = ["session_overview_per_session.sql",
+                     "actions_sequence_per_session.sql",
+                     "messages_per_session.sql",
+                     "tool_usage_per_session.sql",
+                     "feedback_per_session.sql",
+                     "mood_timeline_per_session.sql",
+                     "invites_per_session.sql"]
+
+        for filename in filenames:
+            query = (SQL_DIR / filename).read_text()
+            name = filename.split('.sql')[0]
             cur.execute(query, (session_id,))
             rows = cur.fetchall()
             columns = [desc[0] for desc in cur.description]

@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from dash import dcc, html
 
 from dashboard.db import mood_map
-from dashboard.styles import PLOTLY_LAYOUT, MOOD_COLORS
+from dashboard.styles import MOOD_COLORS, PLOTLY_LAYOUT
 
 dash.register_page(__name__, path="/mood")
 
