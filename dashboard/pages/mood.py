@@ -1,11 +1,14 @@
+"""Mood."""
+
 import dash
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
-from dash import dcc, html
 import dash_bootstrap_components as dbc
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from dash import dcc, html
+
 from dashboard.db import mood_map
-from dashboard.styles import PLOTLY_LAYOUT, mood_colors
+from dashboard.styles import PLOTLY_LAYOUT, MOOD_COLORS
 
 dash.register_page(__name__, path="/mood")
 
@@ -25,18 +28,19 @@ all_moods = list(pd.Series(
 ).unique())
 mood_index = {m: i for i, m in enumerate(all_moods)}
 
-def hex_to_rgba(hex_color, alpha=0.4):
+def hex_to_rgba(hex_color, alpha=0.4) -> str:
     h = hex_color.lstrip("#")
     r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
     return f"rgba({r},{g},{b},{alpha})"
 
-link_colors = [hex_to_rgba(mood_colors.get(m, "#888888")) for m in sankey_df["mood_before"]]
+link_colors = [hex_to_rgba(MOOD_COLORS.get(m, "#888888"))
+               for m in sankey_df["mood_before"]]
 
 
 sankey_fig = go.Figure(go.Sankey(
     node=dict(
         label=all_moods,
-        color= [mood_colors.get(m, "#888") for m in all_moods],
+        color= [MOOD_COLORS.get(m, "#888") for m in all_moods],
         pad=40,
         thickness=20,
     ),

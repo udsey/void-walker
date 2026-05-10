@@ -1,20 +1,24 @@
-import os
-from pydantic import BaseModel
-import yaml
-from dotenv import load_dotenv
-import logging
-from scr.models import PersonaConfigModel, ConfigModel
+"""Setup."""
 
 import logging
+import os
+
+import yaml
+from dotenv import load_dotenv
+from pydantic import BaseModel
+
+from src.models import ConfigModel, PersonaConfigModel
 
 load_dotenv()
 
 
+# ~~~~~~~~~~~~~~~~~~ Logging configurations ~~~~~~~~~~~~~~~~~~
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
     handlers=[
-        logging.StreamHandler(),                          # console
+        logging.StreamHandler(),
     ]
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -25,12 +29,14 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
     handlers=[
-        logging.StreamHandler(),                          # console
+        logging.StreamHandler(),
     ]
 )
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("WDM").setLevel(logging.WARNING)
 
+
+# ~~~~~~~~~~~~~~~~~~ Utils ~~~~~~~~~~~~~~~~~~
 
 def load_config_file(filename: str) -> dict:
     """Load config fime from name."""
@@ -53,9 +59,10 @@ DB_NAME = os.getenv('DB_NAME')
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 
-
-persona_config = load_config_file('persona_config.yaml')
+path = os.path.join(BASE_DIR, 'configs/persona_config.yaml')
+persona_config = load_config_file(path)
 persona_config = PersonaConfigModel(**persona_config)
-config = load_config_file('config.yaml')
+path = os.path.join(BASE_DIR, 'configs/config.yaml')
+config = load_config_file(path)
 config = ConfigModel(**config)
 

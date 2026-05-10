@@ -1,8 +1,12 @@
+"""Overview."""
+
 import dash
+import dash_bootstrap_components as dbc
 import plotly.express as px
 from dash import dcc, html
-import dash_bootstrap_components as dbc
+
 from dashboard.db import overview_map
+from dashboard.styles import COLOR_SEQ
 
 dash.register_page(__name__, path="/overview")
 
@@ -10,12 +14,18 @@ data = {name: fn() for name, fn in overview_map.items()}
 kpis = data["kpis"].iloc[0]
 
 
-def kpi_card(title, value):
+def kpi_card(title, value) -> dbc.Col:
     return dbc.Col(
         dbc.Card([
             dbc.CardBody([
-                html.H6(title, style={"color": "#888888", "letterSpacing": "0.08em", "fontWeight": "300"}),
-                html.H3(str(value), style={"color": "#ffffff", "fontWeight": "300"})
+                html.H6(
+                    title,
+                    style={"color": "#888888",
+                           "letterSpacing": "0.08em",
+                           "fontWeight": "300"}),
+                html.H3(
+                    str(value),
+                    style={"color": "#ffffff", "fontWeight": "300"})
             ])
         ], color="dark", outline=True),
         width=4,
@@ -51,20 +61,20 @@ layout = html.Div([
             title="sessions over time",
             template="plotly_dark",
             markers=True,
-            color_discrete_sequence=["#7c6fcd"]
+            color_discrete_sequence=COLOR_SEQ
         ))
             , width=6),
         dbc.Col(dcc.Graph(figure=px.pie(
             data["friend_vs_solo"], names="type", values="count",
             title="friend vs solo",
             template="plotly_dark",
-            color_discrete_sequence=["#7c6fcd", "#7a9e7e", "#c4956a", "#b07090", "#8fa8c8", "#a89070", "#6b9e9e", "#9e7a7a", "#7a8fa8"]
+            color_discrete_sequence=COLOR_SEQ
         )), width=3),
         dbc.Col(dcc.Graph(figure=px.pie(
             exit_reasons, names="exit_reason", values="count",
             title="exit reasons",
             template="plotly_dark",
-            color_discrete_sequence=["#7c6fcd", "#7a9e7e", "#c4956a", "#b07090", "#8fa8c8", "#a89070", "#6b9e9e", "#9e7a7a", "#7a8fa8"]
+            color_discrete_sequence=COLOR_SEQ
         )), width=3),
     ], className="mb-4"),
 
@@ -75,14 +85,14 @@ layout = html.Div([
             orientation="h",
             title="most used actions",
             template="plotly_dark",
-            color_discrete_sequence=["#7c6fcd"]
+            color_discrete_sequence=COLOR_SEQ
         ).update_layout(yaxis={"categoryorder": "total ascending"})), width=6),
         dbc.Col(dcc.Graph(figure=px.bar(
             archetype_stats, x="archetype", y="avg_duration_minutes",
             title="avg session duration by archetype (minutes)",
             template="plotly_dark",
             hover_data=["sessions", "most_common_exit"],
-            color_discrete_sequence=["#7c6fcd"]
+            color_discrete_sequence=COLOR_SEQ
         )), width=6),
     ]),
 ])

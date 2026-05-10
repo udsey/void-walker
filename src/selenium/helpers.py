@@ -1,32 +1,24 @@
+"""Selenium functions."""
+
 import logging
 from typing import List
 
-
-from selenium.webdriver import Chrome, Remote
+from selenium.webdriver import ActionChains, Chrome, Remote
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver import ActionChains
 
-from scr.setup import config
-
-from scr.models import ConfigModel
+from src.setup import config
 
 logger = logging.getLogger(__name__)
 
 
-def highlight_element(driver: Remote, element: WebElement, duration: int = 1000) -> None:
-    driver.execute_script("""
-        arguments[0].style.outline = '3px solid red';
-        setTimeout(() => arguments[0].style.outline = '', arguments[1]);
-    """, element, duration)
-
 
 def configure_chrome() -> tuple[Chrome, WebDriverWait]:
+    """Configure browser."""
     options = Options()
     options.add_experimental_option("prefs", {
     "profile.content_settings.exceptions.clipboard": {
@@ -34,14 +26,16 @@ def configure_chrome() -> tuple[Chrome, WebDriverWait]:
     }})
     if not config.walkers_config.verbose:
         options.add_argument("--headless=new")
-    driver = Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    driver = Chrome(service=Service(ChromeDriverManager().install()),
+                    options=options)
     wait = WebDriverWait(driver, config.wait_timeout)
     return driver, wait
 
 
-def open_site(driver: Remote, 
-              wait: WebDriverWait, 
+def open_site(driver: Remote,
+              wait: WebDriverWait,
               url: str) -> str:
+    """Open website."""
     try:
         driver.get(url)
         wait.until(
@@ -50,21 +44,24 @@ def open_site(driver: Remote,
         return config.status_config.open_site.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.open_site.on_fail 
-    
+        return config.status_config.open_site.on_fail
+
 
 def close_browser(driver: Remote) -> str:
+    """Close browser"""
     try:
         driver.quit()
         return config.status_config.close_browser.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.close_browser.on_fail
-    
+
 
 def press_explore(driver: Remote) -> str:
+    """Press explore button"""
     try:
-        explore_element = driver.find_element(by=By.CSS_SELECTOR, value="svg.lucide-shuffle")
+        explore_element = driver.find_element(by=By.CSS_SELECTOR,
+                                              value="svg.lucide-shuffle")
         explore_element.click()
         return config.status_config.press_explore.on_success
     except Exception as e:
@@ -73,10 +70,13 @@ def press_explore(driver: Remote) -> str:
 
 
 def press_share(driver: Remote) -> str:
+    """Press share button. On success returns url."""
     try:
-        share_element = driver.find_element(by=By.CSS_SELECTOR, value='svg.lucide-link')        
+        share_element = driver.find_element(by=By.CSS_SELECTOR,
+                                            value='svg.lucide-link')
         share_element.click()
-        url = driver.execute_script("return await navigator.clipboard.readText();")
+        url = driver.execute_script(
+            "return await navigator.clipboard.readText();")
         return url
     except Exception as e:
         logger.debug(e, exc_info=True)
@@ -84,6 +84,7 @@ def press_share(driver: Remote) -> str:
 
 
 def clear_input(driver: Remote):
+    """Clear input."""
     try:
         input_element = driver.find_element(by=By.TAG_NAME, value="input")
         input_element.clear()
@@ -94,9 +95,10 @@ def clear_input(driver: Remote):
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.clear_input.on_fail
-        
+
 
 def input_message(driver: Remote, text: str) -> str:
+    """Insert message."""
     try:
         input_element = driver.find_element(by=By.TAG_NAME, value="input")
         input_element.send_keys(text)
@@ -104,23 +106,28 @@ def input_message(driver: Remote, text: str) -> str:
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.input_message.on_fail
-    
+
 
 def press_submit(driver: Remote):
+    """Press submit button."""
     try:
-        submit_element = driver.find_element(by=By.CSS_SELECTOR, value='svg.lucide-forward')        
+        submit_element = driver.find_element(by=By.CSS_SELECTOR,
+                                             value='svg.lucide-forward')
         submit_element.click()
         return config.status_config.press_submit.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.press_submit.on_fail
-        
+
 
 def validate_cast_input(driver: Remote) -> str:
+    """Check input errors."""
     try:
         input_element = driver.find_element(by=By.TAG_NAME, value="input")
-        action_bar_element = input_element.find_element(by=By.XPATH, value='../../../..')
-        warning_element = action_bar_element.find_elements(by=By.TAG_NAME, value='p')
+        action_bar_element = input_element.find_element(
+            by=By.XPATH, value='../../../..')
+        warning_element = action_bar_element.find_elements(
+            by=By.TAG_NAME, value='p')
         if warning_element:
             return warning_element[0].text
         else:
@@ -128,9 +135,10 @@ def validate_cast_input(driver: Remote) -> str:
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.validate_cast_input.on_fail
-    
+
 
 def send_message(driver: Remote, text: str) -> str:
+    """Send message."""
     try:
         response = clear_input(driver=driver)
         response = input_message(driver=driver, text=text)
@@ -142,11 +150,11 @@ def send_message(driver: Remote, text: str) -> str:
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.send_message.on_fail
-    
+
 
 def read_visible_messages(driver: Remote) -> List[str]:
+    """Return all visible messages."""
     try:
-        word_cloud_element = driver.find_element(by=By.CLASS_NAME, value="cloud-group")
         messages = driver.execute_script("""
             const cloud = document.querySelector('.cloud-group');
             const viewportWidth = window.innerWidth;
@@ -173,9 +181,10 @@ def read_visible_messages(driver: Remote) -> List[str]:
     except Exception as e:
         logger.debug(e, exc_info=True)
         return config.status_config.read_visible_messages.on_fail
-    
+
 
 def check_available_modals(driver: Remote) -> str:
+    """Return list of modals."""
     try:
         nav_element = driver.find_element(by=By.TAG_NAME, value='nav')
         modal_elements = nav_element.find_elements(by=By.XPATH, value='./*')
@@ -186,51 +195,61 @@ def check_available_modals(driver: Remote) -> str:
 
 
 def open_modal(driver: Remote, modal_name: str) -> str:
+    """Open modal."""
     try:
-        modal_element = driver.find_element(By.XPATH, f"//*[text()='{modal_name}']")
+        modal_element = driver.find_element(By.XPATH,
+                                            f"//*[text()='{modal_name}']")
         modal_element.click()
         return config.status_config.open_modal.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.open_modal.on_fail   
-    
+        return config.status_config.open_modal.on_fail
+
 
 def close_modal(driver: Remote) -> str:
+    """Close modal."""
     try:
-        modal_content_element = driver.find_element(by=By.CLASS_NAME, value="modal-content")
-        modal_container_element = modal_content_element.find_element(by=By.XPATH, value='..')
-        close_button_element = modal_container_element.find_element(By.XPATH, ".//button[text()='✕']")
+        modal_content_element = driver.find_element(by=By.CLASS_NAME,
+                                                    value="modal-content")
+        modal_container_element = modal_content_element.find_element(
+            by=By.XPATH, value='..')
+        close_button_element = modal_container_element.find_element(
+            By.XPATH, ".//button[text()='✕']")
         close_button_element.click()
         return config.status_config.close_modal.on_success
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.close_modal.on_fail   
-        
+        return config.status_config.close_modal.on_fail
+
 
 def read_modal_content(driver: Remote) -> str:
+    """Return modal content."""
     try:
-        modal_content_element = driver.find_element(by=By.CLASS_NAME, value="modal-content")
+        modal_content_element = driver.find_element(by=By.CLASS_NAME,
+                                                    value="modal-content")
         modal_content = modal_content_element.text
         return modal_content
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.read_modal_content.on_fail  
+        return config.status_config.read_modal_content.on_fail
 
 
 def interact_with_modal(driver: Remote, modal_name: str) -> str:
+    """Opens modal, extract content and close."""
     try:
-        response = open_modal(driver=driver, modal_name=modal_name)
+        open_modal(driver=driver, modal_name=modal_name)
         content = read_modal_content(driver=driver)
-        response = close_modal(driver=driver)
+        close_modal(driver=driver)
         if content == config.status_config.read_modal_content.on_fail:
             return config.status_config.interact_with_modal.on_fail
         return content
     except Exception as e:
         logger.debug(e, exc_info=True)
-        return config.status_config.interact_with_modal.on_fail 
-    
+        return config.status_config.interact_with_modal.on_fail
+
 
 def move_around(driver: Remote, dx: int, dy: int) -> str:
+    """Simulate mouse move canvas behaviour."""
     try:
         canvas_element = driver.find_element(By.TAG_NAME, "svg")
         width = driver.execute_script("return window.innerWidth")
@@ -251,4 +270,5 @@ def move_around(driver: Remote, dx: int, dy: int) -> str:
 
 
 def get_current_url(driver) -> str:
+    """Return current url."""
     return driver.current_url
