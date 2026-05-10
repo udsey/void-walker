@@ -22,8 +22,8 @@ Three-in-one: QA tool, content seeder, and LLM behavior observatory. Each sessio
 ### Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) and Docker Compose installed
-- (For local setup only) [uv](https://docs.astral.sh/uv/) package manager
-- [`make`](https://www.gnu.org/software/make/) (install if not present — used for convenience commands)
+- [make](https://www.gnu.org/software/make/) (install if not present — used for convenience commands)
+- [uv](https://docs.astral.sh/uv/) package manager (for local setup only)
 
 
 ### Configure environment variables
@@ -90,8 +90,6 @@ make docker-logs-walker     # follow walker logs only
 make docker-logs-dashboard  # follow dashboard logs only
 ```
 
----
-
 ### Local Setup (alternative)
 
 
@@ -131,6 +129,8 @@ make drop-db       # drop all tables
 ---
 
 ## Dashboard
+<img width="1800" height="958" alt="image" src="https://github.com/user-attachments/assets/b310ab64-616b-437a-8536-21360fb5748c" />
+
 
 A local `Plotly Dash` app for exploring session logs. Access it at http://127.0.0.1:8050 after starting the dashboard (see Usage section).
 
@@ -185,7 +185,7 @@ config:
   flowchart:
     curve: linear
 ---
-graph LR;
+graph TD;
     __start__([<p>__start__</p>]):::first
 check_conditions(check_conditions)
 close_website(close_website)
@@ -265,6 +265,7 @@ Key fields carried through the graph:
 ---
 
 ## Database Schema
+<img width="1352" height="774" alt="image" src="https://github.com/user-attachments/assets/81a1d66b-7de0-4a3c-a96f-af457c0f8f81" />
 
 All sessions are logged to a local PostgreSQL database (separate from void-cast). The schema consists of 7 tables with foreign key relationships to `sessions`:
 
