@@ -425,6 +425,21 @@ wheels = [
 ]
 
 [[package]]
+name = "gender-detector"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/c1/172b7dcd81e867488cf0fbc56d9f10a2a802669f0a18cafb5a368077b0d7/gender-detector-0.1.0.tar.gz", hash = "sha256:6e77ae49b3681b4ef192139ef0fb1cbdefbc3bfa515938d317b440f5fc7c7745", size = 1869587, upload-time = "2015-07-27T05:01:51.898Z" }
+
+[[package]]
+name = "gender-guesser"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/dc/69939b7af56b7adf3aa2736771b7c3e7191f7cd36fbc80b0727570c275fa/gender-guesser-0.4.0.tar.gz", hash = "sha256:1591c14592805ca7da06a46d5f7202511f7cb87547049a68dfccbeedb879f31b", size = 337238, upload-time = "2016-12-05T11:41:44.554Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/fb/3f2aac40cd2421e164cab1668e0ca10685fcf896bd6b3671088f8aab356e/gender_guesser-0.4.0-py2.py3-none-any.whl", hash = "sha256:7cb01ce5d8d43b94573498bc02c959b622872abd399622ca67d1b73ba6e7e222", size = 379297, upload-time = "2016-12-05T11:41:47.759Z" },
+]
+
+[[package]]
 name = "google-auth"
 version = "2.52.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1977,6 +1992,18 @@ wheels = [
 ]
 
 [[package]]
+name = "transliterate"
+version = "1.10.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/88/e3/84a89c289a5cf00c7aeabfb5a862a6e4cdc25819701cf1c454a18d32ac33/transliterate-1.10.2.tar.gz", hash = "sha256:bc608e0d48e687db9c2b1d7ea7c381afe0d1849cad216087d8e03d8d06a57c85", size = 43088, upload-time = "2018-09-17T20:52:37.984Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a1/6e/9a9d597dbdd6d0172427c8cc07c35736471e631060df9e59eeb87687f817/transliterate-1.10.2-py2.py3-none-any.whl", hash = "sha256:010a5021bf6021689c4fade0985f3f7b3db1f2f16a48a09a56797f171c08ed42", size = 45780, upload-time = "2018-09-17T20:52:40.332Z" },
+]
+
+[[package]]
 name = "trio"
 version = "0.33.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2089,6 +2116,8 @@ dependencies = [
     { name = "dash" },
     { name = "dash-bootstrap-components" },
     { name = "dotenv" },
+    { name = "gender-detector" },
+    { name = "gender-guesser" },
     { name = "langchain" },
     { name = "langchain-deepseek" },
     { name = "langchain-google-genai" },
@@ -2102,6 +2131,7 @@ dependencies = [
     { name = "psycopg2-binary" },
     { name = "selenium" },
     { name = "sqlalchemy" },
+    { name = "transliterate" },
     { name = "webdriver-manager" },
 ]
 
@@ -2111,6 +2141,8 @@ requires-dist = [
     { name = "dash", specifier = ">=4.1.0" },
     { name = "dash-bootstrap-components", specifier = ">=2.0.4" },
     { name = "dotenv", specifier = ">=0.9.9" },
+    { name = "gender-detector", specifier = ">=0.1.0" },
+    { name = "gender-guesser", specifier = ">=0.4.0" },
     { name = "langchain", specifier = ">=1.2.17" },
     { name = "langchain-deepseek", specifier = ">=1.0.1" },
     { name = "langchain-google-genai", specifier = ">=4.2.2" },
@@ -2124,6 +2156,7 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = ">=2.9.12" },
     { name = "selenium", specifier = ">=4.43.0" },
     { name = "sqlalchemy", specifier = ">=2.0.49" },
+    { name = "transliterate", specifier = ">=1.10.2" },
     { name = "webdriver-manager", specifier = ">=4.0.2" },
 ]
 

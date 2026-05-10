@@ -5,11 +5,13 @@ import logging
 import random
 from typing import Optional
 
-from src.models import CreatePersonaModel, FriendInviteModel
+from src.models import CreatePersonaModel, FriendInviteModel, GenderPrediction
 from src.setup import config, persona_config
+from src.walker.utils import load_llm
 
 logger = logging.getLogger(__name__)
 
+llm = load_llm().with_structured_output(GenderPrediction)
 
 def create_persona(friend_invite: Optional[FriendInviteModel] = None,
                    verbose: Optional[bool] = None) -> CreatePersonaModel:
@@ -56,6 +58,10 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
         friend_message = friend_invite.message
         url = friend_invite.shared_url
         name = friend_invite.friends_name
+        prediction = llm.invoke(
+            f"What is the most likely gender of the name '{name}'?")
+        gender = random.choice([prediction.gender, "non-binary"])
+
         common_language_as_native = random.choice([True, False])
 
         if common_language_as_native:
