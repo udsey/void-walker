@@ -1,0 +1,10 @@
+- title: Example Session
+  url: /example_session
+
+- title: Configuration
+  url: /configuration
+  children:
+    - title: config.yaml
+      url: /configuration/config
+    - title: persona_config.yaml
+      url: /configuration/persona

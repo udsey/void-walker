@@ -1,0 +1,15 @@
+title: void-walker
+description: Autonomous agent with human-like personas
+theme: just-the-docs
+baseurl: "/void-walker"
+url: "https://github.com/udsey"
+# Enable sidebar navigation
+nav_enabled: true
+
+# Aux links appear in the header
+aux_links:
+  "GitHub Repository":
+    - "https://github.com/udsey/void-walker"
+
+# Footer content
+footer_content: "Copyright &copy; 2025 udsey. Distributed under the MIT license."

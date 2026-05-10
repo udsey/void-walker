@@ -1,6 +1,6 @@
 .*
 !.env.example
 !.gitignore
-docs/
 __pycache__
 /data
+/docs/roadmap.md

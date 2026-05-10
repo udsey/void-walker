@@ -15,7 +15,7 @@
 
 Three-in-one: QA tool, content seeder, and LLM behavior observatory. Each session spawns a unique persona that decides whether to enter the void, wanders the canvas, reacts to what it finds, and reflects on the experience — all LLM-driven.
 
-See [example session report](EXAMPLES.md) for a sample walker session.
+See [example session report](docs/example_session.md) for a sample walker session.
 
 ---
 
