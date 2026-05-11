@@ -8,7 +8,7 @@ from dash import dcc, html
 from dashboard.db import overview_map
 from dashboard.styles import COLOR_SEQ
 
-dash.register_page(__name__, path="/overview")
+dash.register_page(__name__, path="/")
 
 data = {name: fn() for name, fn in overview_map.items()}
 kpis = data["kpis"].iloc[0]

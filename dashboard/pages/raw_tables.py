@@ -5,7 +5,7 @@ from dash import dash_table, html
 from dashboard.db import raw_map
 from dashboard.styles import TABLE_STYLE
 
-dash.register_page(__name__, path="/")
+dash.register_page(__name__, path="/tables")
 
 tables = {name: fn() for name, fn in raw_map.items()}
 
@@ -16,7 +16,6 @@ for name, df in tables.items():
         )
 
 layout = html.Div([
-    html.H1("void-walker raw"),
     *[
         html.Div([
             html.H3(name),

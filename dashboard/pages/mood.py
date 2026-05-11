@@ -73,7 +73,6 @@ timeline_fig = px.line(
 timeline_fig.update_layout(**PLOTLY_LAYOUT)
 
 layout = html.Div([
-    html.H1("mood", className="mb-4"),
 
     dbc.Row([
         dbc.Col(dcc.Graph(figure=sankey_fig), width=8),

@@ -43,7 +43,7 @@ run-walkers:
 	@uv run python -c "from src.walker.run import run_walkers; run_walkers($(n), '$(parallel)'.lower() == 'true')"
 
 dashboard:
-	@uv run python -c 'from dashboard.app import app; app.run(debug=False, host="0.0.0.0")'
+	@uv run python -c 'from dashboard.app import app; app.run(debug=True, host="0.0.0.0")'
 
 docker-up:
 	@docker compose up --build -d

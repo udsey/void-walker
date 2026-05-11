@@ -408,3 +408,93 @@ personas_map = {
     "social_tendency": get_social_tendency_distribution,
     "generations": get_generation_distribution,
 }
+
+
+# ~~~~~~~~~~~~~~~~~~ Story Page ~~~~~~~~~~~~~~~~~~
+
+def get_session_breakdown(session_id: str) -> pd.DataFrame:
+    """Get session breakdown."""
+    query_text = """
+        select * from (
+            select
+                to_char(a.timestamp, 'MI:SS') as time,
+                a.timestamp,
+                a.session_id,
+                a.name as action_name,
+                r.reflection,
+                a.llm_prompt,
+                a.llm_answer,
+                a.llm_reason,
+                a.function_result,
+                case
+                    when lag(a.name) over
+                    (partition by a.session_id
+                    order by a.timestamp) = 'select_action'
+                    then lag(a.llm_answer) over (
+                    partition by a.session_id order by a.timestamp)
+                    else ''
+                end as selection_reason,
+                r.mood_before,
+                r.mood_after,
+                (r.mood_before is not null)
+                and (r.mood_before != r.mood_after) as mood_shift,
+                i.friends_name as friend_name,
+                i.message as invite_message,
+                m.message,
+                m.reply_to,
+                m.is_sent as message_is_sent,
+                f.feedback_text as feedback,
+                s.exit_reason,
+                s.summary
+            from actions a
+            left join reflections r on r.session_id = a.session_id
+            and date_trunc('second', r.timestamp) = (
+                select min(date_trunc('second', r2.timestamp))
+                from reflections r2
+                where r2.session_id = a.session_id
+                and date_trunc('second',
+                r2.timestamp) > date_trunc('second', a.timestamp)
+                and a.name != 'open_website'
+            )
+            left join invites i on i.session_id = a.session_id
+                and date_trunc('second',
+                i.timestamp) = date_trunc('second', a.timestamp)
+                and a.name = 'invite_friend'
+            left join messages m on m.session_id = a.session_id
+                and date_trunc('second',
+                m.timestamp) = date_trunc('second', a.timestamp)
+                and a.name in ('send_message', 'respond_to_message')
+            left join feedback f on f.session_id = a.session_id
+                and date_trunc('second',
+                f.timestamp) = date_trunc('second', a.timestamp)
+                and a.name = 'send_feedback'
+            left join sessions s on s.session_id = a.session_id
+            where a.session_id = %s
+            and a.name not in ('check_conditions')
+            order by a.timestamp
+        ) sub
+        where action_name not in ('select_action', 'reflect')
+    """
+    return query(query_text, (session_id, ))
+
+
+def get_persona(session_id: str) -> pd.DataFrame:
+    """Get persona info."""
+    query_text = """
+        select
+        p.* ,
+        s.mood as final_mood
+        from personas p
+        left join sessions s on p.session_id = s.session_id
+        where p.session_id = %s"""
+    return query(query_text, (session_id, ))
+
+
+novel_map = {
+    'session_breakdown': get_session_breakdown,
+    'persona': get_persona
+}
+
+
+
+

@@ -3,6 +3,8 @@ import zipfile
 from typing import Any
 
 import dash
+import dash_bootstrap_components as dbc
+from dash import Input, Output, callback, dcc, html
 from dash import Input, Output, callback, ctx, dash_table, dcc, html
 
 from dashboard.db import get_sessions, session_map
@@ -20,7 +22,6 @@ session_options = [
 
 layout = html.Div([
     dcc.Location(id="url"),
-    html.H1("session detail"),
     dcc.Dropdown(
         id="session-dropdown",
         options=session_options,
@@ -62,7 +63,7 @@ def set_from_url(search) -> Any:
 def load_session(session_id) -> html.P:
     """Load session."""
     if not session_id:
-        return html.P("Select a session to view details.")
+        return None
 
     tables = {name: fn(session_id) for name, fn in session_map.items()}
 
@@ -98,8 +99,7 @@ def download_report(n_clicks, session_id):
     if ctx.triggered_id != "generate-report-btn":
         return None, ""
     if not session_id:
-        return None, html.P("select a session first.",
-                            style={"color": "#b07090"})
+        return None, ""
 
     tables = {name: fn(session_id) for name, fn in session_map.items()}
 

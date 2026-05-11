@@ -13,13 +13,14 @@ app = Dash(__name__,
 app.layout = dbc.Container([
     dbc.NavbarSimple(
         children=[
-            dbc.NavItem(dbc.NavLink("Overview", href="/overview")),
+            dbc.NavItem(dbc.NavLink("Overview", href="/")),
             dbc.NavItem(dbc.NavLink("Session", href="/session")),
             dbc.NavItem(dbc.NavLink("Personas", href="/personas")),
             dbc.NavItem(dbc.NavLink("Mood", href="/mood")),
-            dbc.NavItem(dbc.NavLink("Raw Tables", href="/")),
+            dbc.NavItem(dbc.NavLink("Story", href="/story")),
+            dbc.NavItem(dbc.NavLink("Raw Tables", href="/tables")),
         ],
-        brand="void-walker 🚶",
+        brand="void-walker",
         color="dark",
         dark=True,
         className="mb-4"

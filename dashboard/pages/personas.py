@@ -1,10 +1,11 @@
-"""Persona."""
+"""Personas."""
 
 import dash
 import dash_bootstrap_components as dbc
 import plotly.express as px
 from dash import dcc, html
 
+from dash import clientside_callback
 from dashboard.db import personas_map
 from dashboard.styles import GEO, PLOTLY_LAYOUT
 
@@ -50,8 +51,6 @@ generation_fig = px.bar(
 generation_fig.update_layout(**PLOTLY_LAYOUT)
 
 layout = html.Div([
-    html.H1("personas", className="mb-4"),
-
     dbc.Row([
         dbc.Col(dcc.Graph(figure=world_fig,
                           config={"responsive": True},
