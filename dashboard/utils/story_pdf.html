@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ story.title }}</title>
+</head>
+<body>
+    <div class="story-pdf-container">
+        <div class="story-pdf-title">{{ story.title }}</div>
+        <div class="story-pdf-subtitle">{{ story.sub_title }}</div>
+        <hr class="story-pdf-divider"></hr>
+        <div class="story-pdf-header">
+            {% for key, value in story.header.items() %}
+            <div class="story-pdf-header-row">
+                <span class="story-pdf-header-key">{{ key }}:</span>
+                <span class="story-pdf-header-value">{{ value }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <hr class="story-pdf-divider"></hr>
+        <div class="story-pdf-events">
+            {% for event in story.events %}
+            <div class="story-pdf-event-card">
+                <div class="story-pdf-event-header">{{ event.header }}</div>
+
+                {% if event.selection %}
+                <div class="story-pdf-event-selection">{{ event.selection }}</div>
+                {% endif %}
+
+                {% if event.llm_answer %}
+                <div class="story-pdf-event-llm-answer">{{ event.llm_answer }}</div>
+                {% endif %}
+
+                {% if event.text %}
+                <div class="story-pdf-event-text">{{ event.text }}</div>
+                {% endif %}
+
+                {% if event.reflection %}
+                <div class="story-pdf-event-reflection">{{ event.reflection }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <hr class="story-pdf-divider"></hr>
+        <div class="story-pdf-footer">
+            {% for key, value in story.footer.items() %}
+            <div class="story-pdf-footer-row">
+                <span class="story-pdf-footer-key">{{ key }}:</span>
+                <span class="story-pdf-footer-value">{{ value }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

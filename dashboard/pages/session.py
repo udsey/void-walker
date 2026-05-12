@@ -1,53 +1,43 @@
-import io
-import zipfile
 from typing import Any
 
 import dash
-import dash_bootstrap_components as dbc
-from dash import Input, Output, callback, dcc, html
-from dash import Input, Output, callback, ctx, dash_table, dcc, html
+from dash import Input, Output, callback, dash_table, dcc, html
 
-from dashboard.db import get_sessions, session_map
+from dashboard.components.session_download import (
+    create_session_download_layout,
+    get_session_options,
+    register_session_download_callbacks,
+)
+from dashboard.db import session_map
 from dashboard.styles import TABLE_STYLE
 
 dash.register_page(__name__, path="/session")
 
-session_options = [
-    {"label":
-        f"{row['name']} — {str(row['session_id'])[:6]}... "
-        f"— {row['start_time']}",
-     "value": row["session_id"]}
-    for _, row in get_sessions().iterrows()
-]
+session_options = get_session_options("{name} — {session_id}... ")
 
 layout = html.Div([
     dcc.Location(id="url"),
-    dcc.Dropdown(
-        id="session-dropdown",
-        options=session_options,
-        placeholder="Select a session...",
-        style={"marginBottom": "20px", "color": "black"}
+    *create_session_download_layout(
+        session_options=session_options,
+        id_prefix="session_",  # Add unique prefix
+        button_text="Download Report",
+        button_class="download-btn"
     ),
-    html.Button("download report", id="generate-report-btn",
-        style={
-            "marginBottom": "20px",
-            "backgroundColor": "#0a0a0a",
-            "color": "#a78bfa",
-            "border": "1px solid #2a1a3e",
-            "padding": "8px 16px",
-            "cursor": "pointer",
-            "letterSpacing": "0.08em",
-            "fontWeight": "300"
-        }
-    ),
-    dcc.Download(id="download-report"),
     html.Div(id="report-status"),
     html.Div(id="session-content")
 ])
 
+register_session_download_callbacks(
+    id_prefix="session_",  # Must match layout prefix
+    button_text="Download Report",
+    button_class="download-btn",
+    download_type="zip",
+    session_map_func=session_map
+)
+
 
 @callback(
-    Output("session-dropdown", "value"),
+    Output("session_session-dropdown", "value"),  # Changed to use prefixed ID
     Input("url", "search")
 )
 def set_from_url(search) -> Any:
@@ -58,7 +48,7 @@ def set_from_url(search) -> Any:
 
 @callback(
     Output("session-content", "children"),
-    Input("session-dropdown", "value")
+    Input("session_session-dropdown", "value")  # Changed to use prefixed ID
 )
 def load_session(session_id) -> html.P:
     """Load session."""
@@ -85,31 +75,3 @@ def load_session(session_id) -> html.P:
             for name, df in tables.items()
         ]
     ])
-
-
-@callback(
-    Output("download-report", "data"),
-    Output("report-status", "children"),
-    Input("generate-report-btn", "n_clicks"),
-    Input("session-dropdown", "value"),
-    prevent_initial_call=True
-)
-def download_report(n_clicks, session_id):
-    """Download report."""
-    if ctx.triggered_id != "generate-report-btn":
-        return None, ""
-    if not session_id:
-        return None, ""
-
-    tables = {name: fn(session_id) for name, fn in session_map.items()}
-
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for name, df in tables.items():
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            zf.writestr(f"{name}.csv", csv_buffer.getvalue())
-
-    zip_buffer.seek(0)
-    return dcc.send_bytes(zip_buffer.read(),
-                          f"session_{session_id[:8]}.zip"), ""

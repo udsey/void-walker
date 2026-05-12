@@ -5,6 +5,17 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 
 RUN pip install uv && uv sync --frozen
+RUN uv pip install deep-translator
+RUN apt-get update && apt-get install -y \
+    libgobject-2.0-0 \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcairo2 \
+    libgdk-pixbuf-xlib-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY dashboard/ dashboard/
 COPY configs/ configs/
