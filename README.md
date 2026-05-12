@@ -52,6 +52,7 @@ DB_PORT=5432                    # PostgreSQL default port
 
 # Data Retention
 ACTIONS_LIMIT=10000             # Max actions stored in DB. Cron job removes oldest sessions when exceeded
+LIBRE_API_KEY=                  # API key for translation service (generate random one)
 ```
 ---
 

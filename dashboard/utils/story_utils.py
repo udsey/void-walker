@@ -61,7 +61,7 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
     last_mood = None
     footer = ''
 
-    for _, row in session_breakdown.iterrows():
+    for i, row in session_breakdown.iterrows():
         action_name = row.action_name
         if action_name == 'summarize':
             summary = row.summary
@@ -100,15 +100,15 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
             'text': text,
             'reflection': row.reflection.strip()
                 if isinstance(row.reflection, str) and row.reflection.strip()
+                and (i == 0 or row.reflection != session_breakdown.loc[i, 'llm_answer'])
                 else None,
-
             'selection': row.selection_reason.strip()
-                if (isinstance(row.selection_reason, str)
-                    and row.selection_reason.strip())
+                if isinstance(row.selection_reason, str) and row.selection_reason.strip()
+                and (i == 0 or row.selection_reason != session_breakdown.loc[i, 'llm_answer'])
                 else None,
-
             'llm_answer': row.llm_answer.strip()
                 if isinstance(row.llm_answer, str) and row.llm_answer.strip()
+                and (i == 0 or row.llm_answer != session_breakdown.loc[i, 'llm_answer'])
                 else None,
         })
 

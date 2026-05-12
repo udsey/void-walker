@@ -2,7 +2,7 @@ import logging
 
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback, html, dcc
+from dash import Input, Output, State, callback, dcc, html
 
 from dashboard.components.session_download import (
     create_session_download_layout,
@@ -50,7 +50,14 @@ layout = dbc.Container([
                             "flex", "alignItems": "center"}),
             dcc.Store(id="original-story-store"),  # Store original story
             dcc.Store(id="translated-story-store"),  # Store translated version
-            html.Div(id="story-content")
+            dcc.Loading(
+                id="translation-loading",
+                type="circle",
+                style={f"position": "fixed", "top": "400px",
+                       "left": "50%", "zIndex": 9999},
+                children=html.Div(id="story-content"),
+            ),
+
         ],
         className="story-shell",
         id="story-shell"
@@ -98,7 +105,6 @@ def translate_story_on_language_change(target_lang, original_story):
     """Translate story when language changes."""
     if not original_story:
         return None, None
-    logger.info(target_lang)
 
     if target_lang == "original":
         # Show original story
@@ -108,11 +114,8 @@ def translate_story_on_language_change(target_lang, original_story):
     # Translate the story
     translated_story = translator.translate_story(original_story, target_lang)
 
-
     # Render translated story
     rendered = render_story_content(translated_story)
-
-    logger.info(translated_story.keys())
 
     return translated_story, rendered
 
@@ -221,18 +224,18 @@ def render_event(event: dict) -> dbc.Card:
 @callback(
     Output("story_download-pdf", "data"),
     Input("story_download-trigger", "data"),
-    Input("story_session-dropdown", "value"),
+    State("story_session-dropdown", "value"),
     State("story-language-dropdown", "value"),
     State("original-story-store", "data"),
-    State("translated-story-store", "data"),
     prevent_initial_call=True
 )
-def download_pdf_with_language(trigger, session_id, target_lang, original_story, translated_story):
+def download_pdf_with_language(trigger, session_id, target_lang,
+                               original_story, translated_story):
     """Download PDF in selected language."""
     if not trigger or not session_id:
         return None
 
-    if target_lang == "original" or not translated_story:
+    if not target_lang or target_lang == "original" or not translated_story:
         story = original_story
     else:
         story = translated_story
@@ -255,9 +258,10 @@ def download_pdf_with_language(trigger, session_id, target_lang, original_story,
     Input("story_session-dropdown", "value")
 )
 def show_language_selector(session_id):
-    if session_id:
+    if session_id and translator.translator:
         return html.Div([
-            html.Label("Language:", style={"marginRight": "10px", "color": "#cccccc"}),
+            html.Label("Language:", style={"marginRight": "10px",
+                                           "color": "#cccccc"}),
             dcc.Dropdown(
                 id="story-language-dropdown",
                 options=LANGUAGE_OPTIONS,

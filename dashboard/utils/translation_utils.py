@@ -1,7 +1,9 @@
 """On-demand story translation."""
 
+import copy
 import logging
-from typing import Any, Optional
+from typing import Any
+
 from deep_translator import LibreTranslator
 from dotenv import load_dotenv
 
@@ -33,7 +35,7 @@ class StoryTranslator:
         """Connect to LibreTranslate service."""
         try:
             self.translator = LibreTranslator(
-                host='http://libretranslate:5000',
+                custom_url='http://libretranslate:5000/',
                 source='auto',
                 target='en'
             )
@@ -57,7 +59,7 @@ class StoryTranslator:
             else:
                 return self.translator.translate(text)
         except Exception as e:
-            logger.error(f"Error during translation of '{text[:30]}...': {e}")
+            logger.error(f"Translation error: {e}, target: {target_lang}, host: {self.translator.base_url if hasattr(self.translator, 'base_url') else 'unknown'}")
             return text
 
 
@@ -90,9 +92,12 @@ class StoryTranslator:
             logger.warning("Translator not available, returning original")
             return story_data
 
-        translated = apply_to_dict(story_data,
+        logger.info(f"Starting translation: {story_data}")
+        story = copy.deepcopy(story_data)
+        translated = apply_to_dict(story,
                                    self._translate_text,
                                    target_lang=target_lang)
+
 
         return translated
 

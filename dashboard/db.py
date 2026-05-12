@@ -350,21 +350,32 @@ def get_mood_shift_counts() -> pd.DataFrame:
     """)
 
 
-def get_mood_timeline_by_archetype() -> pd.DataFrame:
-    """Get mood timeline per archetype."""
+def get_mood_over_actions() -> pd.DataFrame:
     return query("""
-        select p.archetype, r.timestamp, r.mood_after as mood
-        from reflections r
-        join personas p on p.session_id = r.session_id
-        where r.mood_after is not null
-        order by p.archetype, r.timestamp
+        with numbered as (
+            select p.archetype,
+                   row_number() over (partition by r.session_id order by r.timestamp) as action_n,
+                   r.mood_after as mood
+            from reflections r
+            join personas p on p.session_id = r.session_id
+            where r.mood_after is not null
+        ),
+        counted as (
+            select archetype, action_n, mood, count(*) as count
+            from numbered
+            group by archetype, action_n, mood
+        )
+        select archetype, action_n, mood, count,
+               count * 100.0 / sum(count) over (partition by archetype, action_n) as pct
+        from counted
+        order by archetype, action_n, mood
     """)
 
 
 mood_map = {
     "sankey": get_mood_sankey,
     "shift_counts": get_mood_shift_counts,
-    "timeline_by_archetype": get_mood_timeline_by_archetype,
+    "mood_over_actions": get_mood_over_actions,
 }
 
 

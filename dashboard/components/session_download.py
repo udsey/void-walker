@@ -71,6 +71,7 @@ def register_session_download_callbacks(
     button_class: str = "download-btn",
     download_type: Literal['zip', 'pdf'] = 'zip',
     create_story_func=None,
+    download_story_func=None,
     session_map_func=None,
 ):
     """
@@ -126,9 +127,11 @@ def register_session_download_callbacks(
                 logging.error("create_story_func required for PDF download")
                 return None
 
+            if download_story_func:
+                return download_story_func(session_id)
+
             story = create_story_func(session_id)
             pdf_bytes = create_story_pdf(story)
-            logging.info(f"PDF bytes size: {len(pdf_bytes)}")
 
             return dcc.send_bytes(
                 pdf_bytes,

@@ -41,10 +41,18 @@ services:
     image: libretranslate/libretranslate:latest
     command: --load-only en,es,fr,de,pt,ru,zh,ar,ja,hi
     environment:
-      LT_API_KEYS: "true"
+      LT_API_KEYS: "false"
     ports:
       - '5000:5000'
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 600s
+    volumes:
+      - lt_models:/home/libretranslate/.local
 
   dashboard:
     container_name: void-walker-dashboard
@@ -65,3 +73,4 @@ services:
 
 volumes:
   pgdata:
+  lt_models:
