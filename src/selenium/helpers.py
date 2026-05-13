@@ -29,12 +29,13 @@ def configure_chrome() -> tuple[Chrome, WebDriverWait]:
 
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.binary_location = "/usr/bin/chromium"
+
 
     try:
         driver = Chrome(service=Service(ChromeDriverManager().install()),
                         options=options)
     except Exception:
+        options.binary_location = "/usr/bin/chromium"
         driver = Chrome(service=Service("/usr/bin/chromedriver"),
                          options=options)
     wait = WebDriverWait(driver, config.wait_timeout)

@@ -8,19 +8,18 @@ from weasyprint import CSS, HTML
 from dashboard.db import novel_map
 
 ACTION_MAP = {
-    'observe_website': 'observing the void',
-    'check_new_messages': 'checking for messages',
-    'move_around': 'drifting further into the dark',
-    'press_explore': 'pressing explore',
-    'open_window': 'opening a window',
-    'invite_friend': 'inviting a friend',
-    'send_message': 'sending a message',
-    'send_feedback': 'leaving feedback',
-    'decide_open_website': 'standing at the edge',
-    'respond_to_message': 'responding to someone',
-    'open_website': 'entering the void',
-    'close_website': 'closes website'
-}
+    'observe_website': 'OBSERVING THE VOID',
+    'check_new_messages': 'CHECKING FOR MESSAGES',
+    'move_around': 'DRIFTING FURTHER INTO THE DARK',
+    'press_explore': 'PRESSING EXPLORE',
+    'open_window': 'OPENING A WINDOW',
+    'invite_friend': 'INVITING A FRIEND',
+    'send_message': 'SENDING A MESSAGE',
+    'send_feedback': 'LEAVING FEEDBACK',
+    'decide_open_website': 'STANDING AT THE EDGE',
+    'respond_to_message': 'RESPONDING TO SOMEONE',
+    'open_website': 'ENTERING THE VOID',
+    'close_website': 'CLOSES WEBSITE'}
 
 def create_title(walker_id: str) -> str:
     """Create title."""
@@ -69,26 +68,42 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
 
 
         mood = row.mood_before or last_mood
-        prefix = f"{row.mood_before}ly " if row.mood_shift and mood else ""
-        header = f"[{row.time}] < {prefix}{ACTION_MAP[row.action_name]} >"
+        mood = f"({mood})" if mood and isinstance(mood, str) else ''
+        header = f"[{row.time}] {mood} < {ACTION_MAP[row.action_name]} >"
+        system_error = None
+
+        if isinstance(row.function_result, str):
+            system_message = row.function_result.strip()
+            if len(system_message) > 600:
+                system_message = system_message[:600] + '...'
+        else:
+            system_message = None
 
 
         if row.action_name == 'invite_friend':
             text = f"to {row.friend_name}:\n\n{row.invite_message}"
         elif row.action_name == "send_message":
             text = f"— {row.message.replace('—', '-')}"
+            if not row.message_is_sent:
+                system_error, system_message = system_message, None
         elif row.action_name == "respond_to_message":
             text = f"— {row.reply_to.replace('—', '-')}\n"
             text += f"\n— {row.message.replace('—', '-')}"
+            if not row.message_is_sent:
+                system_error, system_message = system_message, None
         elif row.action_name == 'send_feedback':
             text = f"leave your feedback here:\n\n{row.feedback}"
         else:
             text = ''
 
+        last_mood = mood
+
+
         events.append({
             'header': header,
             'text': text,
-            'system_message': row.function_result,
+            'system_message': system_message,
+            'system_error': system_error,
             'reflection': row.reflection.strip()
                 if isinstance(row.reflection, str) and row.reflection.strip()
                 else None,

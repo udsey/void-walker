@@ -265,74 +265,89 @@ h3, h6 {
 }
 
 .story-event-header {
-    text-align: left;
-
-    color: #9b8cff;
-
-    font-size: 0.82rem;
-    font-weight: 600;
-
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-
-    opacity: 0.7;
-    margin: 0 0 30px 0;
-}
-
-.story-event-text {
-    white-space: pre-wrap;
-    line-height: 1.4;
-    font-size: 1.08rem;
-    color: #cccc;
-
-    margin-top: 30px;
-    margin-bottom: 40px;
-
-    border-left: 1px solid #cccc;
-    padding-left: 24px;
-}
-
-.story-event-reflection {
-    white-space: pre-wrap;
-
-    line-height: 1.2;
-    font-size: 1rem;
-
-    color: #7a7a7a;
-
-    margin-top: 10px;
+    color: #cccccc;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    font-family: 'Courier New', 'SF Mono', monospace;
+    background: transparent;
+    margin-bottom: 0.5rem;
 }
 
 .story-event-selection {
-    white-space: pre-line;
-    line-height: 1.2;
-    font-size: 1rem;
-
-    color: #7a7a7a;
-
-    margin-top: 10px;
-    margin-bottom: 20px;
+    color:  #666666;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
+
 
 .story-event-llm-answer {
-    white-space: break-spaces;
-
-    line-height: 1.0;
-    font-size: 1rem;
-
-    color: #7a7a7a;
-
-    margin-top: 10px;
+    color:  #666666;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
 
-.story-event-system-message {
-    white-space: pre-wrap;
+
+.story-event-text {
+    font-family: 'Courier New', 'SF Mono', 'Fira Code', monospace;
+    color: #cbd5e1;
     line-height: 1.5;
-    font-size: 1rem;
-    color: #bd2d70;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    border-left: 3px solid #4b5563;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-left: 1rem;
+    background: #111827;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.story-event-system-message {
+    color: #8ba9a8;
+    line-height: 1.4;
+    background: #1a2a2a;
+    padding: 0.1rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    margin-left: 1rem;
+    margin-top: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+
+.story-event-system-error {
+    color:  #A88A8B;
+    line-height: 1.4;
+    background:#3a1717;
+    padding: 0.1rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    margin-left: 1rem;
+    margin-top: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+
+.story-event-reflection {
+    color:  #666666;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
 

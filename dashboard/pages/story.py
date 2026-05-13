@@ -205,6 +205,14 @@ def render_event(event: dict) -> dbc.Card:
                 )
             )
 
+        if event["system_error"]:
+            content.append(
+                html.Div(
+                    event["system_error"],
+                    className="story-event-system-error"
+                )
+            )
+
         if event["reflection"]:
             content.append(
                 html.Div(

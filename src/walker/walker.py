@@ -619,7 +619,7 @@ class VoidWalker():
                         'reflect',
                         'check_conditions'}
         actions = [self.to_reflection_context(a) for a in state.actions
-                   if a not in skip_actions]
+                   if a.name not in skip_actions]
 
         message = (
             f"Your session is ending. Reflect on your time in the void.\n\n"
@@ -633,7 +633,7 @@ class VoidWalker():
             "Write a short summary answering:\n"
             "What you actually did (factual, 2-3 sentences). "
             "How it felt, in your own voice (personal, 2-3 sentences). "
-            "What is the reason behind your exit.\n"
+            "Why are you leaving.\n"
             "Keep it honest and true to your persona.")
         response = self.call_llm(message=message, output_schema=AnswerModel)
         action.llm_prompt = message

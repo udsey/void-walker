@@ -77,62 +77,94 @@
 }
 
 .story-pdf-event-header {
-    text-align: left;
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    opacity: 0.7;
-    margin: 0 0 30px 0;
-    color: #7f8c8d;
+    color: #9ca3af;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    font-family: 'Courier New', 'SF Mono', monospace;
+    background: transparent;
+    margin-bottom: 0.5rem;
     break-after: avoid;
 }
 
 .story-pdf-event-text {
     white-space: pre-wrap;
-    line-height: 1.6;
-    font-size: 1.08rem;
-    color: #2c3e50;
-    margin-top: 30px;
-    margin-bottom: 40px;
-    border-left: 2px solid #d5dbdb;
-    padding-left: 24px;
+    font-family: 'Courier New', 'SF Mono', 'Fira Code', monospace;
+    color: #2d3e50;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    border-left: 3px solid #9ca3af;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    background: #f9fafb;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
-.story-pdf-event-system {
-    white-space: pre-wrap;
-    line-height: 1.5;
-    font-size: 1rem;
-    color: #bd2d70;
-    margin-top: 10px;
-    margin-bottom: 10px;
+.story-pdf-event-system-message {
+    color: #2c7a7d;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    background: #f0fdfa;
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-left: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+
+.story-pdf-event-system-error {
+    color: #b91c1c;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    background: #fef2f2;
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-left: 1rem;
+    font-family: 'Inter', sans-serif;
 }
 
 
 .story-pdf-event-reflection {
-    white-space: pre-wrap;
-    line-height: 1.5;
-    font-size: 1rem;
-    color: #5d6d7e;
-    margin-top: 10px;
-    margin-bottom: 10px;
+    color: #4b5563;
+    font-style: italic;
+    font-size: 0.8rem;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
 .story-pdf-event-selection {
-    white-space: pre-line;
-    line-height: 1.5;
-    font-size: 1rem;
-    color: #5d6d7e;
-    margin-top: 10px;
-    margin-bottom: 20px;
+    color: #4b5563;
+    font-size: 0.8rem;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
 .story-pdf-event-llm-answer {
-    white-space: break-spaces;
-    line-height: 1.5;
-    font-size: 1rem;
-    color: #2c3e50;
-    margin-top: 10px;
+    color: #4b5563;
+    font-size: 0.8rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
 .story-pdf-event-empty {
