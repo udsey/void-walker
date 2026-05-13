@@ -71,7 +71,7 @@ def layout() -> dbc.Container:
             dcc.Loading(
                 id="translation-loading",
                 children=html.Div(id="story-content"),
-                custom_spinner=html.Div("Loading...", style={
+                custom_spinner=html.Div("Translating...", style={
                     "position": "absolute",
                     "top": "100px",
                         }),

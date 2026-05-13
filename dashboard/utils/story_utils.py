@@ -33,12 +33,13 @@ def create_header(persona: pd.DataFrame
     mood_line = f"{persona.mood.values[0]} → {persona.final_mood.values[0]}"
     second_l = ", ".join(
         [lng.strip("{}") for lng in persona.second_languages.values.tolist()])
+    second_l = f" , {second_l}" if second_l else ""
     header = {"name": f"{persona.name.values[0]}",
               "gender": f"{persona.gender.values[0]}",
               "age":    f"{persona.age.values[0]}",
               "archetype": f"{persona.archetype.values[0]}",
               "country": f"{persona.country.values[0]}",
-              "languages": f"{native_l} (native), {second_l}",
+              "languages": f"{native_l} (native){second_l}",
               "mood": f"{mood_line}"
     }
     sub_title = f"Session #{str(persona.session_id.values[0])[:8]}"
