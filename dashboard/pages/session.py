@@ -1,57 +1,60 @@
+import logging
 from typing import Any
 
 import dash
 from dash import Input, Output, callback, dash_table, dcc, html
 
+from dashboard.components.functions import download_report
 from dashboard.components.session_download import (
-    create_session_download_layout,
+    ButtonModel,
+    register_session_callbacks,
     get_session_options,
-    register_session_download_callbacks,
+    session_dropdown
 )
 from dashboard.db import session_map
 from dashboard.styles import TABLE_STYLE
 
+logger = logging.getLogger(__name__)
+
 dash.register_page(__name__, path="/session")
 
-session_options = get_session_options("{name} — {session_id}... ")
 
-layout = html.Div([
-    dcc.Location(id="url"),
-    *create_session_download_layout(
-        session_options=session_options,
-        id_prefix="session_",  # Add unique prefix
-        button_text="Download Report",
-        button_class="download-btn"
-    ),
-    html.Div(id="report-status"),
-    html.Div(id="session-content")
-])
+SESSION_TEMPLATE = "{session_id}... ({name})"
 
-register_session_download_callbacks(
-    id_prefix="session_",  # Must match layout prefix
-    button_text="Download Report",
-    button_class="download-btn",
-    download_type="zip",
-    session_map_func=session_map
+register_session_callbacks(
+    dropdown_id="session-dropdown",
+    button_container_id="session-buttons",
+    buttons=[
+        ButtonModel(
+            id="session-download-btn",
+            text="Download",
+            func=download_report,
+            output_id="session-download",
+            extra_state_ids=[]
+        ),
+    ]
 )
 
 
-@callback(
-    Output("session_session-dropdown", "value"),  # Changed to use prefixed ID
-    Input("url", "search")
-)
-def set_from_url(search) -> Any:
-    if search and "id=" in search:
-        return search.split("id=")[-1]
-    return None
+def layout(id=None, **kwargs):
+    options = get_session_options(SESSION_TEMPLATE)
+    return html.Div([
+        session_dropdown(options, id="session-dropdown", value=id),
+        dcc.Location(id="session-url"),
+        html.Div(id="session-buttons"),
+        dcc.Download(id="session-download"),
+        html.Div(id="session-content"),
+    ])
 
 
 @callback(
     Output("session-content", "children"),
-    Input("session_session-dropdown", "value")  # Changed to use prefixed ID
+    Input("session-dropdown", "value"),
+    prevent_initial_call=False
 )
 def load_session(session_id) -> html.P:
     """Load session."""
+    logger.error(f"LOAD SESSION: {session_id}")
     if not session_id:
         return None
 

@@ -6,6 +6,7 @@ from typing import Any
 
 from deep_translator import LibreTranslator
 from dotenv import load_dotenv
+from urllib3 import HTTPConnectionPool
 
 load_dotenv()
 
@@ -39,9 +40,20 @@ class StoryTranslator:
                 source='auto',
                 target='en'
             )
+            self._check_translator()
+
             logger.info("Successfully connected to LibreTranslate service")
         except Exception as e:
             logger.error(f"Failed to connect to LibreTranslate: {e}")
+            self.translator = None
+
+
+    def _check_translator(self) -> str:
+        """Check Translator."""
+        try:
+            self.translator.translate("test text")
+        except Exception as e:
+            logger.error(f"Translation error: {e}")
             self.translator = None
 
 
@@ -59,7 +71,7 @@ class StoryTranslator:
             else:
                 return self.translator.translate(text)
         except Exception as e:
-            logger.error(f"Translation error: {e}, target: {target_lang}, host: {self.translator.base_url if hasattr(self.translator, 'base_url') else 'unknown'}")
+            logger.error(f"Translation error: {e}")
             return text
 
 

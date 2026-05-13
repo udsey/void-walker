@@ -15,6 +15,7 @@ for name, df in tables.items():
             lambda x: f"[{str(x)[:6]}...](/session?id={x})" if x else ""
         )
 
+
 layout = html.Div([
     *[
         html.Div([

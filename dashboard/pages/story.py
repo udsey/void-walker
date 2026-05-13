@@ -1,27 +1,26 @@
+from functools import partial
 import logging
+from typing import Any
 
 import dash
 import dash_bootstrap_components as dbc
 from dash import Input, Output, State, callback, dcc, html
 
+from dashboard.components.functions import download_story
 from dashboard.components.session_download import (
-    create_session_download_layout,
+    ButtonModel,
     get_session_options,
-    register_session_download_callbacks,
+    register_session_callbacks,
+    session_dropdown,
 )
 from dashboard.utils.story_utils import create_story
 from dashboard.utils.translation_utils import translator
 
 logger = logging.getLogger(__name__)
 
-dash.register_page(
-    __name__,
-    path="/story",
-)
+dash.register_page(__name__, path="/story")
 
-
-session_options = get_session_options("Walker #{session_id} ({name})")
-
+SESSION_TEMPLATE = "Walker #{session_id} ({name})"
 LANGUAGE_OPTIONS = [
     {"label": "Original", "value": "original"},
     {"label": "English", "value": "en"},
@@ -37,92 +36,90 @@ LANGUAGE_OPTIONS = [
 ]
 
 
-layout = dbc.Container([
-    html.Div(
-        create_session_download_layout(
-            session_options=session_options,
-            id_prefix="story_",
-            button_text="Download PDF",
-            button_class="download-btn"
-        ) + [
-            html.Div(id="language-selector-container",
-                     style={"margin": "20px 0", "display":
-                            "flex", "alignItems": "center"}),
-            dcc.Store(id="original-story-store"),  # Store original story
-            dcc.Store(id="translated-story-store"),  # Store translated version
+
+register_session_callbacks(
+    dropdown_id="story-dropdown",
+    button_container_id="story-buttons",
+    buttons=[
+        ButtonModel(
+            id="story-download-btn",
+            text="Download",
+            func=download_story,
+            output_id="story-download",
+            extra_state_ids=["current-story-store"]
+        ),
+    ]
+)
+
+
+def layout() -> dbc.Container:
+    options = get_session_options(SESSION_TEMPLATE)
+    return dbc.Container([
+        html.Div([
+            session_dropdown(options, id="story-dropdown"),
+            html.Div(id="story-buttons"),
+            html.Div(id="language-container"),
+            dcc.Store(id="original-story-store"),
+            dcc.Store(id="current-story-store"),
+            dcc.Download(id="story-download"),
             dcc.Loading(
                 id="translation-loading",
-                type="circle",
-                style={f"position": "fixed", "top": "400px",
-                       "left": "50%", "zIndex": 9999},
-                children=html.Div(id="story-content"),
-            ),
-
-        ],
-        className="story-shell",
-        id="story-shell"
-    )
-], fluid=True, className="story-container")
-
-
-
-register_session_download_callbacks(
-    id_prefix="story_",
-    button_text="Download PDF",
-    button_class="download-btn",
-    download_type='pdf',
-    create_story_func=create_story
-)
+                children=html.Div(id="story-content")
+            )
+        ], className="story-shell", id="story-shell")
+    ], fluid=True, className="story-container")
 
 
 @callback(
-    Output("original-story-store", "data"),
-    Output("story-content", "children"),
-    Input("story_session-dropdown", "value")
-)
-def load_and_store_story(session_id):
-    """Load story and store original version."""
-    if not session_id:
-        return None, None
-
-    story = create_story(session_id)
-
-    # Render the story (original language)
-    rendered = render_story_content(story)
-
-    return story, rendered
-
-
-
-@callback(
-    Output("translated-story-store", "data"),
+    Output("original-story-store", "data", allow_duplicate=True),
+    Output("current-story-store", "data", allow_duplicate=True),
     Output("story-content", "children", allow_duplicate=True),
-    Input("story-language-dropdown", "value"),
+    Input("story-dropdown", "value"),
+    prevent_initial_call=True
+)
+def on_session_select(session_id):
+    if not session_id:
+        return None, None, None
+    story = create_story(session_id)
+    return story, story, render_story_content(story)
+
+
+@callback(
+    Output("language-container", "children", allow_duplicate=True),
+    Input("story-dropdown", "value"),
+    prevent_initial_call=True
+)
+def show_language_dropdown(session_id):
+    if not session_id or not translator.translator:
+        return None
+    return dcc.Dropdown(
+        id="language-dropdown",
+        options=LANGUAGE_OPTIONS,
+        placeholder="Select a language...",
+        clearable=True,
+        className="language-dropdown"
+
+    )
+
+
+@callback(
+    Output("current-story-store", "data", allow_duplicate=True),
+    Output("story-content", "children", allow_duplicate=True),
+    Input("language-dropdown", "value"),
     State("original-story-store", "data"),
     prevent_initial_call=True
 )
-def translate_story_on_language_change(target_lang, original_story):
-    """Translate story when language changes."""
-    if not original_story:
-        return None, None
-
-    if target_lang == "original":
-        # Show original story
-        rendered = render_story_content(original_story)
-        return None, rendered
-
-    # Translate the story
-    translated_story = translator.translate_story(original_story, target_lang)
-
-    # Render translated story
-    rendered = render_story_content(translated_story)
-
-    return translated_story, rendered
-
+def on_language_select(lang, original_story):
+    if not lang or lang == 'original' or not original_story:
+        return original_story, render_story_content(original_story)
+    translated = translator.translate_story(original_story, target_lang=lang)
+    return translated, render_story_content(translated)
 
 
 def render_story_content(story: dict) -> dbc.Card:
     """Render story content from story dictionary."""
+    if not story:
+        return None
     return dbc.Card(
         dbc.CardBody([
             html.Div([
@@ -219,56 +216,3 @@ def render_event(event: dict) -> dbc.Card:
         ]),
         className="story-event-card"
     )
-
-
-@callback(
-    Output("story_download-pdf", "data"),
-    Input("story_download-trigger", "data"),
-    State("story_session-dropdown", "value"),
-    State("story-language-dropdown", "value"),
-    State("original-story-store", "data"),
-    prevent_initial_call=True
-)
-def download_pdf_with_language(trigger, session_id, target_lang,
-                               original_story, translated_story):
-    """Download PDF in selected language."""
-    if not trigger or not session_id:
-        return None
-
-    if not target_lang or target_lang == "original" or not translated_story:
-        story = original_story
-    else:
-        story = translated_story
-
-    if not story:
-        return None
-
-    from dashboard.utils.story_utils import create_story_pdf
-    pdf_bytes = create_story_pdf(story)
-
-    return dcc.send_bytes(
-        pdf_bytes,
-        f"story_{session_id[:8]}_{target_lang}.pdf",
-        type="application/octet-stream"
-    )
-
-
-@callback(
-    Output("language-selector-container", "children"),
-    Input("story_session-dropdown", "value")
-)
-def show_language_selector(session_id):
-    if session_id and translator.translator:
-        return html.Div([
-            html.Label("Language:", style={"marginRight": "10px",
-                                           "color": "#cccccc"}),
-            dcc.Dropdown(
-                id="story-language-dropdown",
-                options=LANGUAGE_OPTIONS,
-                value="original",
-                clearable=False,
-                className="language-dropdown",
-                style={"width": "200px", "display": "inline-block"}
-            ),
-        ], style={"display": "flex", "alignItems": "center"})
-    return None  # Hide when no session selected

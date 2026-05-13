@@ -8,7 +8,8 @@ app = Dash(__name__,
            use_pages=True,
            pages_folder="pages",
            external_stylesheets=[dbc.themes.BOOTSTRAP],
-           suppress_callback_exceptions=True)
+           suppress_callback_exceptions=True,
+           )
 
 
 app.layout = dbc.Container([
