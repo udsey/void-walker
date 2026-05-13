@@ -1,67 +1,59 @@
-import io
-import zipfile
-from typing import Any
+import logging
 
 import dash
-import dash_bootstrap_components as dbc
-from dash import Input, Output, callback, dcc, html
-from dash import Input, Output, callback, ctx, dash_table, dcc, html
+from dash import Input, Output, callback, dash_table, dcc, html
 
-from dashboard.db import get_sessions, session_map
+from dashboard.components.functions import download_report
+from dashboard.components.session_download import (
+    ButtonModel,
+    get_session_options,
+    register_session_callbacks,
+    session_dropdown,
+)
+from dashboard.db import session_map
 from dashboard.styles import TABLE_STYLE
+
+logger = logging.getLogger(__name__)
 
 dash.register_page(__name__, path="/session")
 
-session_options = [
-    {"label":
-        f"{row['name']} — {str(row['session_id'])[:6]}... "
-        f"— {row['start_time']}",
-     "value": row["session_id"]}
-    for _, row in get_sessions().iterrows()
-]
 
-layout = html.Div([
-    dcc.Location(id="url"),
-    dcc.Dropdown(
-        id="session-dropdown",
-        options=session_options,
-        placeholder="Select a session...",
-        style={"marginBottom": "20px", "color": "black"}
-    ),
-    html.Button("download report", id="generate-report-btn",
-        style={
-            "marginBottom": "20px",
-            "backgroundColor": "#0a0a0a",
-            "color": "#a78bfa",
-            "border": "1px solid #2a1a3e",
-            "padding": "8px 16px",
-            "cursor": "pointer",
-            "letterSpacing": "0.08em",
-            "fontWeight": "300"
-        }
-    ),
-    dcc.Download(id="download-report"),
-    html.Div(id="report-status"),
-    html.Div(id="session-content")
-])
+SESSION_TEMPLATE = "{session_id}... ({name})"
 
-
-@callback(
-    Output("session-dropdown", "value"),
-    Input("url", "search")
+register_session_callbacks(
+    dropdown_id="session-dropdown",
+    button_container_id="session-buttons",
+    buttons=[
+        ButtonModel(
+            id="session-download-btn",
+            text="Download",
+            func=download_report,
+            output_id="session-download",
+            extra_state_ids=[]
+        ),
+    ]
 )
-def set_from_url(search) -> Any:
-    if search and "id=" in search:
-        return search.split("id=")[-1]
-    return None
+
+
+def layout(id=None, **kwargs):
+    options = get_session_options(SESSION_TEMPLATE)
+    return html.Div([
+        session_dropdown(options, id="session-dropdown", value=id),
+        dcc.Location(id="session-url"),
+        html.Div(id="session-buttons"),
+        dcc.Download(id="session-download"),
+        html.Div(id="session-content"),
+    ])
 
 
 @callback(
     Output("session-content", "children"),
-    Input("session-dropdown", "value")
+    Input("session-dropdown", "value"),
+    prevent_initial_call=False
 )
 def load_session(session_id) -> html.P:
     """Load session."""
+    logger.error(f"LOAD SESSION: {session_id}")
     if not session_id:
         return None
 
@@ -85,31 +77,3 @@ def load_session(session_id) -> html.P:
             for name, df in tables.items()
         ]
     ])
-
-
-@callback(
-    Output("download-report", "data"),
-    Output("report-status", "children"),
-    Input("generate-report-btn", "n_clicks"),
-    Input("session-dropdown", "value"),
-    prevent_initial_call=True
-)
-def download_report(n_clicks, session_id):
-    """Download report."""
-    if ctx.triggered_id != "generate-report-btn":
-        return None, ""
-    if not session_id:
-        return None, ""
-
-    tables = {name: fn(session_id) for name, fn in session_map.items()}
-
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
-        for name, df in tables.items():
-            csv_buffer = io.StringIO()
-            df.to_csv(csv_buffer, index=False)
-            zf.writestr(f"{name}.csv", csv_buffer.getvalue())
-
-    zip_buffer.seek(0)
-    return dcc.send_bytes(zip_buffer.read(),
-                          f"session_{session_id[:8]}.zip"), ""

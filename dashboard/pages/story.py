@@ -1,26 +1,163 @@
+import logging
+
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, callback, dcc, html
-from dash import clientside_callback
+from dash import Input, Output, State, callback, dcc, html
 
-from dashboard.db import get_sessions
+from dashboard.components.functions import download_story
+from dashboard.components.session_download import (
+    ButtonModel,
+    get_session_options,
+    register_session_callbacks,
+    session_dropdown,
+)
 from dashboard.utils.story_utils import create_story
+from dashboard.utils.translation_utils import translator
 
-dash.register_page(
-    __name__,
-    path="/story",
+logger = logging.getLogger(__name__)
+
+dash.register_page(__name__, path="/story")
+
+SESSION_TEMPLATE = "Walker #{session_id} ({name})"
+LANGUAGE_OPTIONS = [
+    {"label": "Original", "value": "original"},
+    {"label": "English", "value": "en"},
+    {"label": "Spanish", "value": "es"},
+    {"label": "French", "value": "fr"},
+    {"label": "German", "value": "de"},
+    {"label": "Portuguese", "value": "pt"},
+    {"label": "Russian", "value": "ru"},
+    {"label": "Mandarin", "value": "zh"},
+    {"label": "Arabic", "value": "ar"},
+    {"label": "Japanese", "value": "ja"},
+    {"label": "Hindi", "value": "hi"},
+]
+
+
+
+register_session_callbacks(
+    dropdown_id="story-dropdown",
+    button_container_id="story-buttons",
+    buttons=[
+        ButtonModel(
+            id="story-download-btn",
+            text="Download",
+            func=download_story,
+            output_id="story-download",
+            extra_state_ids=["current-story-store"]
+        ),
+    ]
 )
 
-sessions_df = get_sessions()
-session_options = [
-    {"label": f"Walker #{str(row['session_id'])[:8]} ({row['name']})",
-     "value": row["session_id"]
-     } for _, row in sessions_df.iterrows()
-     ]
+
+def layout() -> dbc.Container:
+    options = get_session_options(SESSION_TEMPLATE)
+    return dbc.Container([
+        html.Div([
+            session_dropdown(options, id="story-dropdown"),
+            html.Div(id="story-buttons"),
+            html.Div(id="language-container"),
+            dcc.Store(id="original-story-store"),
+            dcc.Store(id="current-story-store"),
+            dcc.Download(id="story-download"),
+            dcc.Loading(
+                id="translation-loading",
+                children=html.Div(id="story-content")
+            )
+        ], className="story-shell", id="story-shell")
+    ], fluid=True, className="story-container")
+
+
+@callback(
+    Output("original-story-store", "data", allow_duplicate=True),
+    Output("current-story-store", "data", allow_duplicate=True),
+    Output("story-content", "children", allow_duplicate=True),
+    Input("story-dropdown", "value"),
+    prevent_initial_call=True
+)
+def on_session_select(session_id):
+    if not session_id:
+        return None, None, None
+    story = create_story(session_id)
+    return story, story, render_story_content(story)
+
+
+@callback(
+    Output("language-container", "children", allow_duplicate=True),
+    Input("story-dropdown", "value"),
+    prevent_initial_call=True
+)
+def show_language_dropdown(session_id):
+    if not session_id or not translator.translator:
+        return None
+    return dcc.Dropdown(
+        id="language-dropdown",
+        options=LANGUAGE_OPTIONS,
+        placeholder="Select a language...",
+        clearable=True,
+        className="language-dropdown"
+
+    )
+
+
+@callback(
+    Output("current-story-store", "data", allow_duplicate=True),
+    Output("story-content", "children", allow_duplicate=True),
+    Input("language-dropdown", "value"),
+    State("original-story-store", "data"),
+    prevent_initial_call=True
+)
+def on_language_select(lang, original_story):
+    if not lang or lang == 'original' or not original_story:
+        return original_story, render_story_content(original_story)
+    translated = translator.translate_story(original_story, target_lang=lang)
+    return translated, render_story_content(translated)
+
+
+def render_story_content(story: dict) -> dbc.Card:
+    """Render story content from story dictionary."""
+    if not story:
+        return None
+    return dbc.Card(
+        dbc.CardBody([
+            html.Div([
+                html.H1(
+                    story["title"],
+                    className="story-title"
+                ),
+                html.Div(
+                    story["sub_title"],
+                    className="story-subtitle"
+                ),
+            ]),
+            html.Hr(className="story-divider"),
+            html.Div([
+                html.Div([
+                    html.Span(f"{key}:", className="story-header-key"),
+                    html.Span(str(value), className="story-header-value"),
+                ], className="story-header-row")
+                for key, value in story["header"].items()
+            ], className="story-header"),
+            html.Hr(className="story-divider"),
+            html.Div([
+                render_event(event)
+                for event in story["events"]
+            ]),
+            html.Hr(className="story-divider"),
+            html.Div([
+                html.Div([
+                    html.Span(f"{key}:", className="story-footer-key"),
+                    html.Span(str(value), className="story-footer-value"),
+                ], className="story-footer-row")
+                for key, value in story["footer"].items()
+            ], className="story-footer"),
+        ]),
+        className="story-card"
+    )
 
 
 def render_event(event: dict) -> dbc.Card:
-
+    """Render individual event."""
     content = []
 
     if not any([
@@ -28,14 +165,12 @@ def render_event(event: dict) -> dbc.Card:
         event["llm_answer"],
         event["reflection"]
     ]):
-
         content.append(
             html.Div(
                 "",
                 className="story-event-empty"
             )
         )
-
     else:
         if event["selection"]:
             content.append(
@@ -71,104 +206,11 @@ def render_event(event: dict) -> dbc.Card:
 
     return dbc.Card(
         dbc.CardBody([
-
             html.Div(
                 event["header"],
                 className="story-event-header"
             ),
-
             *content
-
         ]),
         className="story-event-card"
     )
-
-layout = dbc.Container([
-    html.Div(
-        [
-        dcc.Dropdown(
-            id="story-session-dropdown",
-            options=session_options,
-            placeholder="Select a session...",
-            className="story-dropdown",
-            clearable=False
-        ),
-        html.Button("Download PDF", id="story-print-btn",
-                    className="download-btn"),
-
-        html.Div(id="story-content")
-    ], className="story-shell", id="story-shell")
-], fluid=True, className="story-container")
-
-
-@callback(
-    Output("story-content", "children"),
-    Input("story-session-dropdown", "value")
-)
-def load_story(session_id):
-    if not session_id:
-        session_id='458d5468-4c4f-11f1-86f1-bbc2023f8855'
-
-    story = create_story(session_id)
-
-    return dbc.Card(
-        dbc.CardBody([
-
-            html.Div([
-                html.H1(
-                    story["title"],
-                    className="story-title"
-                ),
-                html.Div(
-                    story["sub_title"],
-                    className="story-subtitle"
-                ),
-            ]),
-
-            html.Hr(className="story-divider"),
-
-            html.Div([
-                html.Div([
-                    html.Span(f"{key}:", className="story-header-key"),
-                    html.Span(str(value), className="story-header-value"),
-                ], className="story-header-row")
-
-                for key, value in story["header"].items()
-            ], className="story-header"),
-
-            html.Hr(className="story-divider"),
-            # Events
-            html.Div([
-                render_event(event)
-                for event in story["events"]
-            ]),
-
-            html.Hr(className="story-divider"),
-
-            html.Div([
-                html.Div([
-                    html.Span(f"{key}:", className="story-footer-key"),
-                    html.Span(str(value), className="story-footer-value"),
-                ], className="story-footer-row")
-
-                for key, value in story["footer"].items()
-            ], className="story-footer"),
-
-
-
-
-        ]),
-        className="story-card"
-    )
-
-clientside_callback(
-    """
-    function(n) {
-        if(n) { window.print(); }
-        return window.dash_clientside.no_update;
-    }
-    """,
-    Output("story-shell", "id"),
-    Input("story-print-btn", "n_clicks"),
-    prevent_initial_call=True
-)

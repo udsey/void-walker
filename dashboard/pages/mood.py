@@ -62,13 +62,16 @@ shift_fig = px.bar(
 )
 shift_fig.update_layout(**PLOTLY_LAYOUT)
 
-# Timeline by archetype
-timeline_fig = px.line(
-    data["timeline_by_archetype"], x="timestamp", y="mood",
-    color="archetype",
-    title="mood over time by archetype",
+
+timeline_fig = px.bar(
+    data["mood_over_actions"],
+    x="action_n",
+    y="pct",
+    color="mood",
+    facet_col="archetype",
+    title="Mood over Actions",
     template="plotly_dark",
-    markers=True
+    barmode="stack",
 )
 timeline_fig.update_layout(**PLOTLY_LAYOUT)
 

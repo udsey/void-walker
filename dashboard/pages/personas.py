@@ -5,7 +5,6 @@ import dash_bootstrap_components as dbc
 import plotly.express as px
 from dash import dcc, html
 
-from dash import clientside_callback
 from dashboard.db import personas_map
 from dashboard.styles import GEO, PLOTLY_LAYOUT
 

@@ -2,6 +2,8 @@
 
 
 import pandas as pd
+from jinja2 import Environment, FileSystemLoader
+from weasyprint import CSS, HTML
 
 from dashboard.db import novel_map
 
@@ -59,7 +61,7 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
     last_mood = None
     footer = ''
 
-    for _, row in session_breakdown.iterrows():
+    for i, row in session_breakdown.iterrows():
         action_name = row.action_name
         if action_name == 'summarize':
             summary = row.summary
@@ -99,11 +101,10 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
             'reflection': row.reflection.strip()
                 if isinstance(row.reflection, str) and row.reflection.strip()
                 else None,
-
             'selection': row.selection_reason.strip()
-                if isinstance(row.selection_reason, str) and row.selection_reason.strip()
+                if isinstance(row.selection_reason, str)
+                and row.selection_reason.strip()
                 else None,
-
             'llm_answer': row.llm_answer.strip()
                 if isinstance(row.llm_answer, str) and row.llm_answer.strip()
                 else None,
@@ -121,6 +122,9 @@ def create_story(session_id: str) -> tuple:
     session_breakdown = novel_map['session_breakdown'](session_id)
     persona = novel_map['persona'](session_id)
 
+    if persona.empty:
+        raise ValueError("No such session_id")
+
     title = create_title(walker_id=session_id)
     header = create_header(persona=persona)
     event_block = create_event_block(session_breakdown=session_breakdown)
@@ -133,13 +137,19 @@ def create_story(session_id: str) -> tuple:
 
 
 
+env = Environment(loader=FileSystemLoader('dashboard/utils'))
+template = env.get_template('story_pdf.html')
 
 
-
-
-
-
-
-
-
+def create_story_pdf(story: dict) -> bytes:
+    """Generate pdf version of story."""
+    try:
+        html_content = template.render(story=story)
+        pdf_bytes = HTML(string=html_content).write_pdf(
+            stylesheets=[CSS(filename='dashboard/utils/story.css')]
+        )
+        return pdf_bytes
+    except Exception as e:
+        print(f"PDF generation error: {e}")
+        raise
 

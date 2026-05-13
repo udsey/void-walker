@@ -1,0 +1,174 @@
+/* story */
+
+:root {
+    --text-body: #2c3e50;
+    --text-light: #5d6d7e;
+    --text-header: #1a2632;
+    --accent-muted: #7f8c8d;
+    --accent-warm: #8b6b4d;
+    --border-light: #e8ecef;
+}
+
+.story-pdf-container {
+    width: 92%;
+    margin: 0 auto;
+    padding-top: 20px;
+    padding-bottom: 40px;
+}
+
+.story-pdf-card {
+    border: none !important;
+}
+
+.story-pdf-title {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    color: #1a2632;
+}
+
+.story-pdf-subtitle {
+    text-align: center;
+    color: #5d6d7e;
+    letter-spacing: 0.08em;
+    margin-bottom: 30px;
+}
+
+.story-pdf-header {
+    margin-bottom: 50px;
+    margin-left: 20px;
+    margin-right: auto;
+}
+
+.story-pdf-header-row {
+    display: flex;
+    gap: 18px;
+    padding: 6px 0;
+    border-bottom: none;
+}
+
+.story-pdf-header-key {
+    width: 140px;
+    color: #5d6d7e;
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
+.story-pdf-header-value {
+    color: #2c3e50;
+}
+
+.story-pdf-events {
+    page-break-after: avoid;
+}
+
+.story-pdf-event-card {
+    border: none !important;
+    padding: 0;
+    margin: 40px 0;
+}
+
+.story-pdf-event-card .card-body {
+    padding: 0 !important;
+}
+
+.story-pdf-event-header {
+    text-align: left;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin: 0 0 30px 0;
+    color: #7f8c8d;
+    break-after: avoid;
+}
+
+.story-pdf-event-text {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    font-size: 1.08rem;
+    color: #2c3e50;
+    margin-top: 30px;
+    margin-bottom: 40px;
+    border-left: 2px solid #d5dbdb;
+    padding-left: 24px;
+}
+
+.story-pdf-event-reflection {
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: 1rem;
+    color: #5d6d7e;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.story-pdf-event-selection {
+    white-space: pre-line;
+    line-height: 1.5;
+    font-size: 1rem;
+    color: #5d6d7e;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.story-pdf-event-llm-answer {
+    white-space: break-spaces;
+    line-height: 1.5;
+    font-size: 1rem;
+    color: #2c3e50;
+    margin-top: 10px;
+}
+
+.story-pdf-event-empty {
+    text-align: left;
+    margin-left: 50px;
+    color: #95a5a6;
+    font-style: italic;
+    letter-spacing: 0.08em;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.story-pdf-divider {
+    border-color: #8b6b4d;
+    opacity: 0.3;
+    margin-top: 15px;
+    margin-bottom: 15px;
+
+}
+.story-pdf-footer-wrapper {
+    page-break-before: avoid;
+}
+
+.story-pdf-footer {
+    margin-bottom: 50px;
+    margin-left: 20px;
+    margin-right: auto;
+    break-before: page;
+}
+
+
+.story-pdf-footer-row {
+    display: flex;
+    gap: 18px;
+    padding: 6px 0;
+    border-bottom: none;
+}
+
+.story-pdf-footer-key {
+    width: 140px;
+    color: #5d6d7e;
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
+.story-pdf-footer-value {
+    color: #2c3e50;
+}
