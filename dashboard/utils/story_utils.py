@@ -19,7 +19,7 @@ ACTION_MAP = {
     'decide_open_website': 'STANDING AT THE EDGE',
     'respond_to_message': 'RESPONDING TO SOMEONE',
     'open_website': 'ENTERING THE VOID',
-    'close_website': 'CLOSES WEBSITE'}
+    'close_website': 'LEAVING THE VOID'}
 
 def create_title(walker_id: str) -> str:
     """Create title."""
