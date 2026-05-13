@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 import dash
 from dash import Input, Output, callback, dash_table, dcc, html
@@ -7,9 +6,9 @@ from dash import Input, Output, callback, dash_table, dcc, html
 from dashboard.components.functions import download_report
 from dashboard.components.session_download import (
     ButtonModel,
-    register_session_callbacks,
     get_session_options,
-    session_dropdown
+    register_session_callbacks,
+    session_dropdown,
 )
 from dashboard.db import session_map
 from dashboard.styles import TABLE_STYLE

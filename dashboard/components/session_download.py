@@ -1,15 +1,12 @@
 """Reusable session selection and download component."""
 
-import io
 import logging
-import zipfile
-from typing import Callable, List, Literal
+from typing import Callable, List
 
 from dash import Input, Output, State, callback, dcc, html
 from pydantic import BaseModel
 
 from dashboard.db import get_sessions
-from dashboard.utils.story_utils import create_story_pdf
 
 logger = logging.getLogger(__name__)
 class ButtonModel(BaseModel):
@@ -37,7 +34,9 @@ def get_session_options(label_template: str):
     return session_options
 
 
-def session_dropdown(options, id="session-dropdown", value=None) -> dcc.Dropdown:
+def session_dropdown(options,
+                     id="session-dropdown",
+                     value=None) -> dcc.Dropdown:
     return dcc.Dropdown(
         id=id,
         options=options,

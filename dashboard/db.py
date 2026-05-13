@@ -354,7 +354,8 @@ def get_mood_over_actions() -> pd.DataFrame:
     return query("""
         with numbered as (
             select p.archetype,
-                   row_number() over (partition by r.session_id order by r.timestamp) as action_n,
+                   row_number() over (
+                 partition by r.session_id order by r.timestamp) as action_n,
                    r.mood_after as mood
             from reflections r
             join personas p on p.session_id = r.session_id
@@ -366,7 +367,8 @@ def get_mood_over_actions() -> pd.DataFrame:
             group by archetype, action_n, mood
         )
         select archetype, action_n, mood, count,
-               count * 100.0 / sum(count) over (partition by archetype, action_n) as pct
+               count * 100.0 / sum(count) over (p
+                 artition by archetype, action_n) as pct
         from counted
         order by archetype, action_n, mood
     """)

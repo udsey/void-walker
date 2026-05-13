@@ -6,7 +6,6 @@ from typing import Any
 
 from deep_translator import LibreTranslator
 from dotenv import load_dotenv
-from urllib3 import HTTPConnectionPool
 
 load_dotenv()
 

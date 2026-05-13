@@ -1,10 +1,11 @@
 import io
-import zipfile
 import logging
+import zipfile
+
 from dash import dcc
 
-from dashboard.utils.story_utils import create_story_pdf
 from dashboard.db import session_map
+from dashboard.utils.story_utils import create_story_pdf
 
 logger = logging.getLogger(__name__)
 
