@@ -56,7 +56,7 @@ def register_session_callbacks(
     @callback(
         Output(button_container_id, "children", allow_duplicate=True),
         Input(dropdown_id, "value"),
-        prevent_initial_call=True
+        prevent_initial_call='initial_duplicate'
     )
     def show_buttons(session_id) -> list:
         if not session_id:

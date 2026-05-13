@@ -196,6 +196,8 @@ h3, h6 {
     margin: 0 auto;
     padding-top: 20px;
     padding-bottom: 40px;
+    position: relative;
+    overflow: hidden;
 }
 
 .story-card {
@@ -265,65 +267,92 @@ h3, h6 {
 }
 
 .story-event-header {
-    text-align: left;
-
-    color: #9b8cff;
-
-    font-size: 0.82rem;
-    font-weight: 600;
-
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-
-    opacity: 0.7;
-    margin: 0 0 30px 0;
-}
-
-.story-event-text {
-    white-space: pre-wrap;
-    line-height: 1.4;
-    font-size: 1.08rem;
-    color: #cccc;
-
-    margin-top: 30px;
-    margin-bottom: 40px;
-
-    border-left: 1px solid #cccc;
-    padding-left: 24px;
-}
-
-.story-event-reflection {
-    white-space: pre-wrap;
-
-    line-height: 1.2;
-    font-size: 1rem;
-
-    color: #7a7a7a;
-
-    margin-top: 10px;
+    color: #cccccc;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    font-family: 'Courier New', 'SF Mono', monospace;
+    background: transparent;
+    margin-bottom: 0.5rem;
 }
 
 .story-event-selection {
-    white-space: pre-line;
-    line-height: 1.2;
-    font-size: 1rem;
-
-    color: #7a7a7a;
-
-    margin-top: 10px;
-    margin-bottom: 20px;
+    color:  #666666;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
+
 
 .story-event-llm-answer {
-    white-space: break-spaces;
-
-    line-height: 1.0;
-    font-size: 1rem;
-
-    color: #7a7a7a;
-
-    margin-top: 10px;
+    color:  #666666;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
 }
+
+
+
+.story-event-text {
+    font-family: 'Courier New', 'SF Mono', 'Fira Code', monospace;
+    color: #cbd5e1;
+    line-height: 1.5;
+    border-left: 3px solid #4b5563;
+    padding-left: 1rem;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-left: 1rem;
+    background: #111827;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.story-event-system-message {
+    color: #8ba9a8;
+    line-height: 1.4;
+    background: #1a2a2a;
+    padding: 0.1rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    margin-left: 1rem;
+    margin-top: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+
+.story-event-system-error {
+    color:  #A88A8B;
+    line-height: 1.4;
+    background:#3a1717;
+    padding: 0.1rem 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    margin-left: 1rem;
+    margin-top: 1rem;
+    font-family: 'Inter', sans-serif;
+}
+
+
+.story-event-reflection {
+    color:  #666666;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.4;
+    margin-bottom: 1rem;
+    margin-top: 1rem;
+    padding-left: 0.75rem;
+    background: transparent;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+
+
 
 .story-event-empty {
     text-align: left;
@@ -389,4 +418,58 @@ border: 1px solid rgb(42, 26, 62);
 padding: 8px 16px; cursor:
 pointer; letter-spacing: 0.08em;
 font-weight: 300;
+}
+
+
+.modal-dialog {
+    margin: auto;
+}
+
+.modal {
+    display: flex !important;
+    align-items: center;
+}
+
+
+
+
+.nav-btn-next {
+    position: fixed;
+    bottom: 50%;
+    max-height: 100px;
+    right: 0;
+    border: 1px solid rgb(42, 26, 62);
+    padding: 8px 16px; cursor:
+    pointer; letter-spacing: 0.08em;
+    font-weight: 300;
+    height: 100vh;
+    width: 50px;
+    background: rgba(100, 80, 180, 0.5);
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+
+.nav-btn-prev {
+    position: fixed;
+    bottom: 50%;
+    max-height: 100px;
+    left: 0;
+    border: 1px solid rgb(42, 26, 62);
+    padding: 8px 16px; cursor:
+    pointer; letter-spacing: 0.08em;
+    font-weight: 300;
+    height: 100vh;
+    width: 50px;
+    background: rgba(100, 80, 180, 0.5);
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    opacity: 0.4;
+    transition: opacity 0.2s;
 }

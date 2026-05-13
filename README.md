@@ -15,7 +15,7 @@
 
 Three-in-one: QA tool, content seeder, and LLM behavior observatory. Each session spawns a unique persona that decides whether to enter the void, wanders the canvas, reacts to what it finds, and reflects on the experience — all LLM-driven.
 
-See [example session report](docs/example_session.md) for a sample walker session.
+See [example session report](/docs/session_c1dcb682.zip) and [example story](/docs/story_c1dcb682.pdf)
 
 ---
 
@@ -200,14 +200,14 @@ open_website(open_website)
 reflect(reflect)
 select_action(select_action)
 summarize(summarize)
-send_message(send_message)
-respond_to_message(respond_to_message)
-press_explore(press_explore)
-move_around(move_around)
-open_window(open_window)
-send_feedback(send_feedback)
-invite_friend(invite_friend)
-check_new_messages(check_new_messages)
+send_message(send_message):::tool
+respond_to_message(respond_to_message):::tool
+press_explore(press_explore):::tool
+move_around(move_around):::tool
+open_window(open_window):::tool
+send_feedback(send_feedback):::tool
+invite_friend(invite_friend):::tool
+check_new_messages(check_new_messages):::tool
     __end__([<p>__end__</p>]):::last
     __start__ --> decide_open_website;
 check_conditions -.-> close_website;
@@ -241,6 +241,7 @@ summarize --> __end__;
 classDef default fill:#f2f0ff,line-height:1.2
 classDef first fill-opacity:0
 classDef last fill:#bfb6fc
+classDef tool fill:#ddf0dd,line-height:1.2
 
 ```
 

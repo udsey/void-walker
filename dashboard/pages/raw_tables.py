@@ -1,6 +1,7 @@
 """Raw Tables."""
 import dash
-from dash import dash_table, html
+import dash_bootstrap_components as dbc
+from dash import Input, Output, State, callback, dash_table, html
 
 from dashboard.db import raw_map
 from dashboard.styles import TABLE_STYLE
@@ -17,6 +18,9 @@ for name, df in tables.items():
 
 
 layout = html.Div([
+    dbc.Modal([dbc.ModalBody(id="cell-modal-body")],
+              id="cell-modal",
+              is_open=False),
     *[
         html.Div([
             html.H3(name),
@@ -38,3 +42,19 @@ layout = html.Div([
         for name, df in tables.items()
     ]
 ])
+
+
+for name in tables:
+    @callback(
+        Output("cell-modal", "is_open", allow_duplicate=True),
+        Output("cell-modal-body", "children", allow_duplicate=True),
+        Input(f"{name.lower()}-table", "active_cell"),
+        State(f"{name.lower()}-table", "derived_virtual_data"),
+        prevent_initial_call=True
+    )
+    def show_cell(active_cell, data):
+        if not active_cell or not data:
+            return False, None
+        row = data[active_cell["row"]]
+        value = row[active_cell["column_id"]]
+        return True, str(value)

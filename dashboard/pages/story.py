@@ -2,7 +2,7 @@ import logging
 
 import dash
 import dash_bootstrap_components as dbc
-from dash import Input, Output, State, callback, dcc, html
+from dash import Input, Output, State, callback, ctx, dcc, html
 
 from dashboard.components.functions import download_story
 from dashboard.components.session_download import (
@@ -53,8 +53,16 @@ register_session_callbacks(
 def layout() -> dbc.Container:
     options = get_session_options(SESSION_TEMPLATE)
     return dbc.Container([
+        html.Button(html.I(className="bi bi-chevron-left"),
+                        id="prev-session-btn",
+                        className="nav-btn-prev"),
+        html.Button(html.I(className="bi bi-chevron-right"),
+                        id="next-session-btn",
+                        className="nav-btn-next"),
         html.Div([
-            session_dropdown(options, id="story-dropdown"),
+            session_dropdown(options,
+                             id="story-dropdown",
+                             value=options[0]["value"] if options else None),
             html.Div(id="story-buttons"),
             html.Div(id="language-container"),
             dcc.Store(id="original-story-store"),
@@ -62,8 +70,13 @@ def layout() -> dbc.Container:
             dcc.Download(id="story-download"),
             dcc.Loading(
                 id="translation-loading",
-                children=html.Div(id="story-content")
-            )
+                children=html.Div(id="story-content"),
+                custom_spinner=html.Div("Translating...", style={
+                    "position": "absolute",
+                    "top": "100px",
+                        }),
+)
+
         ], className="story-shell", id="story-shell")
     ], fluid=True, className="story-container")
 
@@ -73,7 +86,7 @@ def layout() -> dbc.Container:
     Output("current-story-store", "data", allow_duplicate=True),
     Output("story-content", "children", allow_duplicate=True),
     Input("story-dropdown", "value"),
-    prevent_initial_call=True
+    prevent_initial_call='initial_duplicate'
 )
 def on_session_select(session_id):
     if not session_id:
@@ -85,19 +98,21 @@ def on_session_select(session_id):
 @callback(
     Output("language-container", "children", allow_duplicate=True),
     Input("story-dropdown", "value"),
-    prevent_initial_call=True
+    prevent_initial_call='initial_duplicate'
 )
 def show_language_dropdown(session_id):
     if not session_id or not translator.translator:
         return None
-    return dcc.Dropdown(
+    return html.Div(
+    dcc.Dropdown(
         id="language-dropdown",
         options=LANGUAGE_OPTIONS,
-        placeholder="Select a language...",
+        value="original",
         clearable=True,
         className="language-dropdown"
-
-    )
+    ),
+    id=f"language-wrapper-{session_id}"
+)
 
 
 @callback(
@@ -105,11 +120,14 @@ def show_language_dropdown(session_id):
     Output("story-content", "children", allow_duplicate=True),
     Input("language-dropdown", "value"),
     State("original-story-store", "data"),
-    prevent_initial_call=True
+    State("story-dropdown", "value"),
+    prevent_initial_call='initial_duplicate'
 )
-def on_language_select(lang, original_story):
+def on_language_select(lang, original_story, session_id):
     if not lang or lang == 'original' or not original_story:
-        return original_story, render_story_content(original_story)
+        return dash.no_update, dash.no_update
+    if original_story.get("session_id") != session_id:
+        return dash.no_update, dash.no_update
     translated = translator.translate_story(original_story, target_lang=lang)
     return translated, render_story_content(translated)
 
@@ -163,7 +181,8 @@ def render_event(event: dict) -> dbc.Card:
     if not any([
         event["selection"],
         event["llm_answer"],
-        event["reflection"]
+        event["reflection"],
+        event['system_message']
     ]):
         content.append(
             html.Div(
@@ -196,6 +215,22 @@ def render_event(event: dict) -> dbc.Card:
                 )
             )
 
+        if event["system_message"]:
+            content.append(
+                html.Div(
+                    event["system_message"],
+                    className="story-event-system-message"
+                )
+            )
+
+        if event["system_error"]:
+            content.append(
+                html.Div(
+                    event["system_error"],
+                    className="story-event-system-error"
+                )
+            )
+
         if event["reflection"]:
             content.append(
                 html.Div(
@@ -214,3 +249,26 @@ def render_event(event: dict) -> dbc.Card:
         ]),
         className="story-event-card"
     )
+
+
+
+@callback(
+    Output("story-dropdown", "value"),
+    Input("prev-session-btn", "n_clicks"),
+    Input("next-session-btn", "n_clicks"),
+    State("story-dropdown", "value"),
+    State("story-dropdown", "options"),
+    prevent_initial_call=True
+)
+def navigate_session(prev, next_, current, options):
+    if not options or not current:
+        return dash.no_update
+    ids = [o["value"] for o in options]
+    if current not in ids:
+        return dash.no_update
+    idx = ids.index(current)
+    if ctx.triggered_id == "prev-session-btn":
+        idx = max(0, idx - 1)
+    else:
+        idx = min(len(ids) - 1, idx + 1)
+    return ids[idx]
