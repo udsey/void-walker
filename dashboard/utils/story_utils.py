@@ -22,10 +22,6 @@ ACTION_MAP = {
     'close_website': 'closes website'
 }
 
-BASIC_ACTIONS = {'move_around', 'press_explore',
-                 'open_window', 'observe_website',
-                 'check_new_messages', 'open_website', 'close_website'}
-
 def create_title(walker_id: str) -> str:
     """Create title."""
     return f"Walker #{walker_id[:8]}"
@@ -80,16 +76,10 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
         if row.action_name == 'invite_friend':
             text = f"to {row.friend_name}:\n\n{row.invite_message}"
         elif row.action_name == "send_message":
-            if row.message_is_sent:
-                text = f"— {row.message.replace('—', '-')}"
-            else:
-                text = f"{row.function_result}"
+            text = f"— {row.message.replace('—', '-')}"
         elif row.action_name == "respond_to_message":
-            if row.message_is_sent:
-                text = f"— {row.reply_to.replace('—', '-')}\n"
-                text += f"\n— {row.message.replace('—', '-')}"
-            else:
-                text = f"{row.function_result}"
+            text = f"— {row.reply_to.replace('—', '-')}\n"
+            text += f"\n— {row.message.replace('—', '-')}"
         elif row.action_name == 'send_feedback':
             text = f"leave your feedback here:\n\n{row.feedback}"
         else:
@@ -98,6 +88,7 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
         events.append({
             'header': header,
             'text': text,
+            'system_message': row.function_result,
             'reflection': row.reflection.strip()
                 if isinstance(row.reflection, str) and row.reflection.strip()
                 else None,

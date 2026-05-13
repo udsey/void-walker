@@ -99,6 +99,16 @@
     padding-left: 24px;
 }
 
+.story-pdf-event-system {
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: 1rem;
+    color: #bd2d70;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+
 .story-pdf-event-reflection {
     white-space: pre-wrap;
     line-height: 1.5;

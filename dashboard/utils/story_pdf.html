@@ -35,6 +35,10 @@
                 <div class="story-pdf-event-text">{{ event.text }}</div>
                 {% endif %}
 
+                {% if event.text %}
+                <div class="story-pdf-system-message">{{ event.text }}</div>
+                {% endif %}
+
                 {% if event.reflection %}
                 <div class="story-pdf-event-reflection">{{ event.reflection }}</div>
                 {% endif %}

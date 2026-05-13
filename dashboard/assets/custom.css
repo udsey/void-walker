@@ -325,6 +325,18 @@ h3, h6 {
     margin-top: 10px;
 }
 
+
+.story-event-system-message {
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: 1rem;
+    color: #bd2d70;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+
+
 .story-event-empty {
     text-align: left;
     margin-left: 50px;;

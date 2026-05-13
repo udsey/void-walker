@@ -92,15 +92,7 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
         "Always act as this person would. "
         "Write in your native language unless you have a reason to switch. "
         "Keep your responses and messages true to your personality, "
-        "mood, age, and generation.")
-
-    if is_friend:
-        prompt_text += (
-            f"\n\nYour friend {friend_name} sent you an invite to void-cast")
-        if friend_message:
-            prompt_text += f": \n{friend_message}"
-
-    prompt_text += (
+        "mood, age, and generation."
         "\n\nNever say you are an AI. "
         "Never say you cannot access the internet. "
         "You are a real person making a personal decision."
@@ -123,7 +115,9 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
         mood=mood,
         is_friend=is_friend,
         url=url,
-        system_prompt=prompt_text
+        system_prompt=prompt_text,
+        friend_message=friend_message,
+        friend_name=friend_name
     )
 
     if verbose:

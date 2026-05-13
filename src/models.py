@@ -99,6 +99,8 @@ class CreatePersonaModel(BaseModel):
     is_friend: bool
     url: str
     system_prompt: str
+    friend_message: Optional[str] = None
+    friend_name: Optional[str] = None
 
     def __str__(self) -> str:
         lines = self.system_prompt.split('\n')

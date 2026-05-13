@@ -363,15 +363,17 @@ class VoidWalker():
                              timestamp=datetime.now())
 
         if state.is_friend:
-            message = "Your friend mentioned a website called void-cast. "
-
+            message = (
+                f"Your friend {self.persona.friend_name} "
+                "sent you an invite to void-cast. "
+                f"They wrote: \n{self.persona.friend_message}")
         else:
             message = "You just heard about a website called void-cast."
 
         message += (
             "It's a dark infinite canvas "
             "where people leave anonymous messages. "
-            "Do you feel curious enough to check it out?")
+            "Do you feel like check it out?")
         response = self.call_llm(message=message, output_schema=YesNoModel)
 
         action.llm_prompt = message
@@ -611,18 +613,27 @@ class VoidWalker():
         action = ActionModel(name=self.summarize_node._name,
                              timestamp=datetime.now())
         invited_friends = [f.friends_name for f in state.invited_friends]
+
+        skip_actions = {"summarize",
+                        'select_action',
+                        'reflect',
+                        'check_conditions'}
+        actions = [self.to_reflection_context(a) for a in state.actions
+                   if a not in skip_actions]
+
         message = (
             f"Your session is ending. Reflect on your time in the void.\n\n"
             f"Facts:\n"
-            f"- Total actions taken: {len(state.actions)}\n"
             f"- Messages sent: {[m.message for m in state.sent_messages]}\n"
             f"- Windows opened: {state.opened_windows}\n"
             f"- Friends invited: {invited_friends}\n"
+            f"- Actions you took: {actions}\n"
             f"- Mood journey: {self.persona.mood} → {state.mood}\n"
             f"- Exit reason: {state.exit_reason}\n\n"
             "Write a short summary answering:\n"
-            "What you actually did (factual, 2-3 sentences)\n"
-            "How it felt, in your own voice (personal, 2-3 sentences)\n"
+            "What you actually did (factual, 2-3 sentences). "
+            "How it felt, in your own voice (personal, 2-3 sentences). "
+            "What is the reason behind your exit.\n"
             "Keep it honest and true to your persona.")
         response = self.call_llm(message=message, output_schema=AnswerModel)
         action.llm_prompt = message

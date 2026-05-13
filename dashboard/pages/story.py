@@ -163,7 +163,8 @@ def render_event(event: dict) -> dbc.Card:
     if not any([
         event["selection"],
         event["llm_answer"],
-        event["reflection"]
+        event["reflection"],
+        event['system_message']
     ]):
         content.append(
             html.Div(
@@ -193,6 +194,14 @@ def render_event(event: dict) -> dbc.Card:
                 html.Div(
                     event["text"],
                     className="story-event-text"
+                )
+            )
+
+        if event["system_message"]:
+            content.append(
+                html.Div(
+                    event["system_message"],
+                    className="story-event-system-message"
                 )
             )
 
