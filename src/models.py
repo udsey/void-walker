@@ -315,6 +315,7 @@ class AgentState(BaseModel):
     # Actions
     actions: Annotated[list[ActionModel], add_actions] = []
     opened_windows: Annotated[list[str], append_str] = []
+    learned_map: Annotated[list[str], append_str]
 
     def __str__(self) -> str:
         lines = []

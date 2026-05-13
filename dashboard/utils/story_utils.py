@@ -33,7 +33,7 @@ def create_header(persona: pd.DataFrame
     mood_line = f"{persona.mood.values[0]} → {persona.final_mood.values[0]}"
     second_l = ", ".join(
         [lng.strip("{}") for lng in persona.second_languages.values.tolist()])
-    second_l = f" , {second_l}" if second_l else ""
+    second_l = f", {second_l}" if second_l else ""
     header = {"name": f"{persona.name.values[0]}",
               "gender": f"{persona.gender.values[0]}",
               "age":    f"{persona.age.values[0]}",
@@ -73,7 +73,9 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
         header = f"[{row.time}] {mood} < {ACTION_MAP[row.action_name]} >"
         system_error = None
 
-        if isinstance(row.function_result, str):
+        if (
+            isinstance(row.function_result, str)
+            ):
             system_message = row.function_result.strip()
             if len(system_message) > 600:
                 system_message = system_message[:600] + '...'
@@ -113,7 +115,9 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
                 and row.selection_reason.strip()
                 else None,
             'llm_answer': row.llm_answer.strip()
-                if isinstance(row.llm_answer, str) and row.llm_answer.strip()
+                if (isinstance(row.llm_answer, str)
+                     and row.llm_answer.strip()
+                     and row.llm_answer not in {'true', 'false'})
                 else None,
         })
 
