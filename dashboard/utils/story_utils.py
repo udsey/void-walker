@@ -135,7 +135,8 @@ def create_story(session_id: str) -> tuple:
     header = create_header(persona=persona)
     event_block = create_event_block(session_breakdown=session_breakdown)
 
-    content_dict = {'title': title}
+    content_dict = {'title': title,
+                    'session_id': session_id}
     content_dict.update(header)
     content_dict.update(event_block)
 

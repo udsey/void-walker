@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 def download_report(session_id: str):
         if not session_id:
              return None
-        logger.error(f"DOWNLOAD REPORT: {session_id}")
         tables = {name: fn(session_id) for
                   name, fn in session_map.items()}
 

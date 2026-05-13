@@ -39,22 +39,21 @@ class StoryTranslator:
                 source='auto',
                 target='en'
             )
-            self._check_translator()
+            self.translator.translate("test text")
 
             logger.info("Successfully connected to LibreTranslate service")
-        except Exception as e:
-            logger.error(f"Failed to connect to LibreTranslate: {e}")
-            self.translator = None
-
-
-    def _check_translator(self) -> str:
-        """Check Translator."""
-        try:
-            self.translator.translate("test text")
-        except Exception as e:
-            logger.error(f"Translation error: {e}")
-            self.translator = None
-
+        except Exception:
+            try:
+                self.translator = LibreTranslator(
+                    custom_url='http://localhost:5000/',
+                    source='auto',
+                    target='en'
+                )
+                self.translator.translate("test text")
+                logger.info("Successfully connected to LibreTranslate service")
+            except Exception as e:
+                self.translator = None
+                logger.error(f"Failed to connect to LibreTranslate: {e}")
 
     def _translate_text(self, text: str, target_lang: str = 'en') -> str:
         """Translate a single text string."""

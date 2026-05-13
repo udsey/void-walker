@@ -131,10 +131,7 @@ def get_session_overview(session_id: str) -> pd.DataFrame:
 def get_actions_per_session(session_id: str) -> pd.DataFrame:
     """Get actions per session table."""
     query_text = """select
-            a.id, a.name as action_name, a.timestamp,
-            a.timestamp - lag(a.timestamp) over (
-            partition by a.session_id order by a.timestamp) as time_since_prev,
-            a.llm_reason, a.llm_answer, a.function_result
+            a.*
         from actions a
         where a.session_id = %s
         order by a.timestamp"""
@@ -157,8 +154,7 @@ def get_mood_timeline_per_session(session_id: str) -> pd.DataFrame:
 def get_messages_per_session(session_id: str) -> pd.DataFrame:
     """Get messages per session table."""
     query_text = """select
-            m.id, m.timestamp, m.is_sent, m.message, m.reply_to,
-            m.last_read_messages,
+            m.*,
             case when m.reply_to is not null
             then true else false end as is_reply
         from messages m
@@ -170,8 +166,7 @@ def get_messages_per_session(session_id: str) -> pd.DataFrame:
 def get_invites_per_session(session_id: str) -> pd.DataFrame:
     """Get invites per session table."""
     query_text = """select
-            i.timestamp, i.name as from_walker, i.friends_name as to_friend,
-            i.common_language, i.message, i.shared_url, i.friend_session_id,
+            i.*,
             s.exit_reason as friend_exit_reason,
             (s.end_time - s.start_time) as friend_session_duration
         from invites i
@@ -183,7 +178,7 @@ def get_invites_per_session(session_id: str) -> pd.DataFrame:
 
 def get_feedback_per_session(session_id: str) -> pd.DataFrame:
     """Get feedback per session table."""
-    query_text = """select f.timestamp, f.feedback_text
+    query_text = """select f.*
         from feedback f
         where f.session_id = %s
         order by f.timestamp"""

@@ -375,7 +375,7 @@ class VoidWalker():
             "where people leave anonymous messages. "
             "Do you feel like check it out?")
         response = self.call_llm(message=message, output_schema=YesNoModel)
-
+        logger.info(f"Decide open message: {message}")
         action.llm_prompt = message
         action.llm_response = response
         if not response.answer:

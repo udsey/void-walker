@@ -196,6 +196,8 @@ h3, h6 {
     margin: 0 auto;
     padding-top: 20px;
     padding-bottom: 40px;
+    position: relative;
+    overflow: hidden;
 }
 
 .story-card {
@@ -416,4 +418,58 @@ border: 1px solid rgb(42, 26, 62);
 padding: 8px 16px; cursor:
 pointer; letter-spacing: 0.08em;
 font-weight: 300;
+}
+
+
+.modal-dialog {
+    margin: auto;
+}
+
+.modal {
+    display: flex !important;
+    align-items: center;
+}
+
+
+
+
+.nav-btn-next {
+    position: fixed;
+    bottom: 50%;
+    max-height: 100px;
+    right: 0;
+    border: 1px solid rgb(42, 26, 62);
+    padding: 8px 16px; cursor:
+    pointer; letter-spacing: 0.08em;
+    font-weight: 300;
+    height: 100vh;
+    width: 50px;
+    background: rgba(100, 80, 180, 0.5);
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+
+.nav-btn-prev {
+    position: fixed;
+    bottom: 50%;
+    max-height: 100px;
+    left: 0;
+    border: 1px solid rgb(42, 26, 62);
+    padding: 8px 16px; cursor:
+    pointer; letter-spacing: 0.08em;
+    font-weight: 300;
+    height: 100vh;
+    width: 50px;
+    background: rgba(100, 80, 180, 0.5);
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-size: 20px;
+    opacity: 0.4;
+    transition: opacity 0.2s;
 }
