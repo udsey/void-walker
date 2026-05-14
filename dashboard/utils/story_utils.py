@@ -1,6 +1,8 @@
 """Story utils."""
 
 
+import time
+
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import CSS, HTML
@@ -59,6 +61,7 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
 
     for i, row in session_breakdown.iterrows():
         action_name = row.action_name
+
         if action_name == 'summarize':
             summary = row.summary
             footer = {
@@ -66,7 +69,6 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
                 'subject note': summary
             }
             continue
-
 
         mood = row.mood_before or last_mood
         mood = f"({mood})" if mood and isinstance(mood, str) else ''
@@ -102,7 +104,7 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
         last_mood = mood
 
 
-        events.append({
+        event = {
             'header': header,
             'text': text,
             'system_message': system_message,
@@ -119,7 +121,23 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
                      and row.llm_answer.strip()
                      and row.llm_answer not in {'true', 'false'})
                 else None,
-        })
+        }
+
+        if action_name == "decide_open_website":
+
+            event['system_message'] = (row.llm_prompt.strip()
+                if (isinstance(row.llm_prompt, str)
+                     and row.llm_prompt.strip()
+                     and row.llm_prompt not in {'true', 'false'})
+                else None)
+            event['reflection'] = (row.llm_reason.strip()
+                        if (isinstance(row.llm_reason, str)
+                            and row.llm_reason.strip()
+                            and row.llm_reason not in {'true', 'false'})
+                            else '')
+
+
+        events.append(event)
 
     return {
         'events': events,
@@ -148,7 +166,9 @@ def create_story(session_id: str) -> tuple:
     return content_dict
 
 
-
+HTML(string="<p>warmup 中文</p>").write_pdf(
+    stylesheets=[CSS(filename='dashboard/utils/story.css')]
+)
 env = Environment(loader=FileSystemLoader('dashboard/utils'))
 template = env.get_template('story_pdf.html')
 
@@ -156,10 +176,14 @@ template = env.get_template('story_pdf.html')
 def create_story_pdf(story: dict) -> bytes:
     """Generate pdf version of story."""
     try:
+        t0 = time.time()
         html_content = template.render(story=story)
+        print(f"render template: {time.time()-t0:.2f}s")
+        t1 = time.time()
         pdf_bytes = HTML(string=html_content).write_pdf(
             stylesheets=[CSS(filename='dashboard/utils/story.css')]
         )
+        print(f"write_pdf: {time.time()-t1:.2f}s")
         return pdf_bytes
     except Exception as e:
         print(f"PDF generation error: {e}")

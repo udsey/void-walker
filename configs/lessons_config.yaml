@@ -1,0 +1,12 @@
+about: "→ from the 'about' window: The void doesn't judge or remember. It just holds things for a moment. Someone named udsey built it."
+support: "→ from the 'support' window: The void is free. If you want to help keep it alive, you can buy udsey a coffee or star it on GitHub. It's built with web tools."
+terms: "→ from the 'terms' window: Anyone can post here. No account needed. But words might disappear anytime. No one moderates in real time. You are responsible for what you say."
+
+press_explore: "→ action 'press_explore' moves you to a random location. You can't control where, nor return back."
+move_around: "→ action 'move_around' changes your position. Small moves let you see nearby messages. Large moves take you farther. You can return by moving the opposite direction."
+invite_friend: "→ action 'invite_friend' might bring them to your exact location. But you never know if or when. They won't follow if you move"
+
+messages: "→ messages drift without names. Yours might linger where you left them — or they might be gone."
+message_char_limit: "→ the void won't accept messages over 300 characters."
+message_frequency_limit: "→ when you send too many messages too quickly, the void asks you to pause."
+

@@ -66,6 +66,10 @@ os.makedirs(DATA_DIR, exist_ok=True)
 path = os.path.join(BASE_DIR, 'configs/persona_config.yaml')
 persona_config = load_config_file(path)
 persona_config = PersonaConfigModel(**persona_config)
+
+path = os.path.join(BASE_DIR, 'configs/lessons_config.yaml')
+lessons_config = load_config_file(path)
+
 path = os.path.join(BASE_DIR, 'configs/config.yaml')
 config = load_config_file(path)
 config = ConfigModel(**config)
