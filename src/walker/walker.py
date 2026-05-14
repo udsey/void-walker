@@ -5,6 +5,7 @@ import random
 import subprocess
 import threading
 import uuid
+from collections import Counter
 from datetime import datetime
 from inspect import signature
 from typing import List, Optional
@@ -21,11 +22,12 @@ from src.models import (
     AnswerModel,
     FriendInviteModel,
     ReflectionModel,
+    SummaryModel,
     ToolOutputModel,
     YesNoModel,
 )
 from src.selenium.helpers import close_browser, configure_chrome, open_site
-from src.setup import config, persona_config
+from src.setup import config, lessons_config, persona_config
 from src.walker.persona import create_persona
 from src.walker.tools import WalkerTools
 from src.walker.utils import create_map, load_llm, register
@@ -58,14 +60,14 @@ class VoidWalker():
 
         self.time_limit_min = config.walkers_config.time_limit
         self.actions_limit = config.walkers_config.action_limit
-        self.friends_limit =config.walkers_config.friends_limit
+        self.friends_limit = config.walkers_config.friends_limit
         self.verbose = config.walkers_config.verbose
         self.friend_invite = friend_invite
 
         self.moods = persona_config.moods
 
 
-        self.session_id = self.session_id = uuid.uuid1().hex
+        self.session_id = uuid.uuid1().hex
 
         # Initialize DB writer with pool
         self.db = DatabaseWriter()
@@ -156,7 +158,7 @@ class VoidWalker():
 
 
     def display_graph(self) -> None:
-        """Draw VoidWalker's draph."""
+        """Draw VoidWalker's graph."""
         mermaid_text = self.graph.get_graph().draw_mermaid()
         try:
             from IPython import get_ipython
@@ -187,12 +189,8 @@ class VoidWalker():
             logger.info(
                 f"Walker limit reached, {self.persona.name} won't walk.")
             return
-        try:
-            logger.info(f"Start walker with session_id: {self.session_id[:8]}")
-            _active_walkers.acquire()
-            _active_walkers.release()
 
-            invoke_input = {
+        invoke_input = {
                 "session_id": self.session_id,
                 "start_time": datetime.now(),
                 "system_prompt": self.persona.system_prompt,
@@ -205,18 +203,21 @@ class VoidWalker():
             f"{config.llm_config.model_type}/{config.llm_config.model_name}",
                 "model_temperature": config.llm_config.temperature
             }
-            if self.friend_invite:
-                invoke_input['parent_session_id'] =\
-                      self.friend_invite.session_id
+        if self.friend_invite:
+            invoke_input['parent_session_id'] = self.friend_invite.session_id
 
-            response = self.graph.invoke(input=invoke_input)
-            self.state = AgentState(**response)
-
-            self.log_persona()
-            self.db.flush(self.state)
-
-            if self.verbose:
-                logger.info(response)
+        try:
+            logger.info(f"Start walker with session_id: {self.session_id[:8]}")
+            _active_walkers.acquire()
+            try:
+                response = self.graph.invoke(input=invoke_input)
+                self.state = AgentState(**response)
+                self.log_persona()
+                self.db.flush(self.state)
+                if self.verbose:
+                    logger.info(response)
+            finally:
+                _active_walkers.release()
         finally:
             _total_walkers.release()
 
@@ -232,6 +233,28 @@ class VoidWalker():
         if action.function_result:
             lines.append(f"What happened: {action.function_result} ")
         return "\n".join(lines)
+
+
+    def to_lesson(self, tool_name: str, tool_output: ToolOutputModel) -> set:
+        """Add lesson based on tool result."""
+        lessons = set()
+        if tool_name == "open_window":
+            lessons.add(lessons_config[tool_output.window])
+        elif tool_name == "move_around":
+            lessons.add(lessons_config["move_around"])
+        elif tool_name == "press_explore":
+            lessons.add(lessons_config["press_explore"])
+        elif tool_name == "invite_friend":
+            lessons.add(lessons_config["invite_friend"])
+        elif tool_name in {"respond_to_message", "send_message"}:
+            lessons.add(lessons_config["messages"])
+            on_success = config.status_config.send_message.on_success
+            if (tool_output.tool_message != on_success):
+                error = ("message_frequency_limit"
+                         if "too many" in tool_output.tool_message
+                         else "message_char_limit")
+                lessons.add(lessons_config[error])
+        return lessons
 
 
     def log_reflection(self, state: StateGraph, action: ActionModel) -> None:
@@ -499,30 +522,40 @@ class VoidWalker():
                     'initialize_tools', 'decide_open_website'}
         action_names = [
             a.name for a in state.actions if a.name not in EXCLUDED]
-        history_line = f"Action history: {action_names}\n"
-        recent = [
-            a.name for a in state.actions if a.name not in EXCLUDED][-10:]
+        action_history = f"Action history: {action_names}\n"
+
+        recent = action_names[-10:]
         counts = {}
         for name in recent:
             counts[name] = counts.get(name, 0) + 1
+
+        msgs = '; '.join([f'"{m.message}"' for m in state.sent_messages])
+        friends = ', '.join([
+            invite.friends_name for invite in state.invited_friends])
 
         warnings = [
             (f"you've used '{name}' {count} "
              "times in your last 10 meaningful actions")
             for name, count in counts.items() if count >= 3]
 
-        if warnings:
-            history_line += (
-                f"Warning: {'; '.join(warnings)}. Try something different.\n")
+        warnings = (f"\n\nWarning: {'; '.join(warnings)}. "
+                    "Try something different.") if warnings else ""
 
-        msgs = '; '.join([m.message for m in state.sent_messages])
-        message = f"Current reflection: {state.reflection}\n" \
-           f"Mood: {state.mood}\n" \
-           + history_line + \
-           f"Messages you can see: {state.last_read_messages}\n" \
-           f"Windows you've opened: {state.opened_windows}\n" \
-           f"Messages you sent: {msgs}\n" \
-           "Decide what to do next."
+        lessons = "\n".join(state.learned_lessons)
+        message = (
+            "LESSONS YOU'VE LEARNED:\n\n"
+            f"{lessons}"
+            "CURRENT STATE:\n\n"
+            f"- Action history: [{action_history}]\n"
+            f"- Messages you can see: {state.last_read_messages}\n"
+            f"- Messages you've sent: [{msgs}]\n"
+            f"- Windows you've opened: {state.opened_windows}\n"
+            f"- Friends you've invited: {friends}\n"
+            f"- Current reflection: {state.reflection}\n\n"
+            "Decide what to do next.")
+
+        message += warnings
+
 
         response = self.call_llm(message=message)
         action.llm_prompt = message
@@ -557,22 +590,17 @@ class VoidWalker():
     def execute_tool_node(self, state: AgentState) -> dict:
         """Execute selected tool."""
         last = state.actions[-1].llm_response
+
         tool_call = last.tool_calls[0]
         tool = {t.name: t for t in self.tools}[tool_call['name']]
-        tool_output = ToolOutputModel.model_validate_json(
-            tool.invoke(tool_call['args']))
+
+        tool_output = tool.invoke(tool_call['args'])
+
+        tool_output = ToolOutputModel.model_validate_json(tool_output)
+
         action = ActionModel(name=tool_call['name'],
                             timestamp=datetime.now(),
                             function_result=tool_output.tool_message)
-
-        sent_texts = {m.message for m in state.sent_messages}
-        prev_messages = set(state.last_read_messages)
-        message_history = sent_texts | prev_messages
-
-        new_messages = [
-            m for m in tool_output.visible_messages
-            if m not in message_history]
-
 
         if (
             tool_output.friend_invite
@@ -587,7 +615,7 @@ class VoidWalker():
                 friend_invite=tool_output.friend_invite
             )
             tool_output.friend_invite.friend_session_id = friend.session_id
-            thread = threading.Thread(target=friend.walk, daemon=True)
+            thread = threading.Thread(target=friend.walk, daemon=False)
             with _threads_lock:
                 _all_threads.append(thread)
             thread.start()
@@ -598,12 +626,14 @@ class VoidWalker():
         self.log_action(action)
 
         return {"actions": action,
-                "last_read_messages": new_messages,
+                "last_read_messages": tool_output.visible_messages,
                 "sent_messages": tool_output.to_sent_message(),
                 "feedback": tool_output.feedback,
                 "opened_windows": tool_output.window,
                 "invited_friends": tool_output.to_friend_invite(),
-                "current_url": tool_output.current_url or state.current_url
+                "current_url": tool_output.current_url or state.current_url,
+                "learned_lessons": self.to_lesson(tool_name=tool_call['name'],
+                                                  tool_output=tool_output)
                 }
 
 
@@ -615,11 +645,20 @@ class VoidWalker():
         invited_friends = [f.friends_name for f in state.invited_friends]
 
         skip_actions = {"summarize",
+                        "initialize_tools",
                         'select_action',
                         'reflect',
                         'check_conditions'}
-        actions = [self.to_reflection_context(a) for a in state.actions
-                   if a.name not in skip_actions]
+        actions = [a.name for a in state.actions if a.name not in skip_actions]
+        actions = ', '.join([f"{k} ({v}x)"
+                             for k, v in Counter(actions).items()])
+        last_action = state.actions[-1]
+
+        question = (
+            "Why did you choose to leave?"
+            if state.exit_reason == 'decide to close'
+            else
+            "Why are you leaving? (The void ended your time.)")
 
         message = (
             f"Your session is ending. Reflect on your time in the void.\n\n"
@@ -628,14 +667,25 @@ class VoidWalker():
             f"- Windows opened: {state.opened_windows}\n"
             f"- Friends invited: {invited_friends}\n"
             f"- Actions you took: {actions}\n"
-            f"- Mood journey: {self.persona.mood} → {state.mood}\n"
             f"- Exit reason: {state.exit_reason}\n\n"
             "Write a short summary answering:\n"
             "What you actually did (factual, 2-3 sentences). "
             "How it felt, in your own voice (personal, 2-3 sentences). "
-            "Why are you leaving.\n"
+            f"{question}\n"
             "Keep it honest and true to your persona.")
-        response = self.call_llm(message=message, output_schema=AnswerModel)
+
+        if state.exit_reason == "not interested":
+            message = (
+                "You chose not to enter the void."
+                f"You considered: {last_action.llm_prompt}"
+                f"You decided: {last_action.llm_response.answer}"
+                f"Your reasoning: {last_action.llm_response.reason}"
+                "Answer these question:"
+                "- How did you feel when you saw the void?"
+                "- Why did you reject it?"
+                )
+
+        response = self.call_llm(message=message, output_schema=SummaryModel)
         action.llm_prompt = message
         action.llm_response = response
         self.log_action(action)

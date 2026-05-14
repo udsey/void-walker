@@ -11,8 +11,14 @@ def run_walkers(n: int = 1, parallel: bool = False):
     if not parallel:
         for _ in range(n):
             VoidWalker().walk()
+        with _threads_lock:
+            friend_threads = list(_all_threads)
+        for t in friend_threads:
+            t.join()
         return
+
     threads = []
+
     for _ in range(n):
         walker = VoidWalker()
         thread = threading.Thread(target=walker.walk, daemon=True)

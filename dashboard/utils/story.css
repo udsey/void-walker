@@ -9,6 +9,10 @@
     --border-light: #e8ecef;
 }
 
+body {
+    font-family: 'Inter', 'Segoe UI', 'Noto Sans CJK SC', sans-serif;
+}
+
 .story-pdf-container {
     width: 92%;
     margin: 0 auto;
@@ -81,7 +85,7 @@
     font-size: 0.7rem;
     font-weight: 500;
     letter-spacing: 0.5px;
-    font-family: 'Courier New', 'SF Mono', monospace;
+    font-family: 'Courier New', 'SF Mono', 'Noto Sans CJK SC', monospace;
     background: transparent;
     margin-bottom: 0.5rem;
     break-after: avoid;
@@ -89,7 +93,7 @@
 
 .story-pdf-event-text {
     white-space: pre-wrap;
-    font-family: 'Courier New', 'SF Mono', 'Fira Code', monospace;
+    font-family: 'Courier New', 'SF Mono', 'Fira Code', 'Noto Sans CJK SC', monospace;
     color: #2d3e50;
     font-size: 0.9rem;
     line-height: 1.5;
@@ -112,7 +116,7 @@
     margin-bottom: 1rem;
     margin-top: 1rem;
     margin-left: 1rem;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Noto Sans CJK SC', 'Noto Color Emoji', sans-serif;
 }
 
 
@@ -126,7 +130,7 @@
     margin-bottom: 1rem;
     margin-top: 1rem;
     margin-left: 1rem;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Noto Sans CJK SC', 'Noto Color Emoji', sans-serif;
 }
 
 
@@ -140,7 +144,7 @@
     margin-top: 1rem;
     padding-left: 0.75rem;
     background: transparent;
-    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Noto Sans CJK SC', 'Noto Color Emoji', sans-serif;
 }
 
 .story-pdf-event-selection {
@@ -152,7 +156,7 @@
     margin-top: 1rem;
     padding-left: 0.75rem;
     background: transparent;
-    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Noto Sans CJK SC', 'Noto Color Emoji', sans-serif;
 }
 
 .story-pdf-event-llm-answer {
@@ -164,7 +168,7 @@
     margin-top: 1rem;
     padding-left: 0.75rem;
     background: transparent;
-    font-family: 'Inter', 'Segoe UI', sans-serif;
+    font-family: 'Inter', 'Segoe UI', 'Noto Sans CJK SC', 'Noto Color Emoji', sans-serif;
 }
 
 .story-pdf-event-empty {

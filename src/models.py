@@ -138,6 +138,17 @@ class AnswerModel(BaseModel):
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+class SummaryModel(BaseModel):
+    """Summary model for end-of-session reflection."""
+    answer: str = Field(
+description="Your complete summary of your time in the void (3-5 sentences)")
+    reason: str = Field(
+        description="One sentence on what prompted you to write this summary")
+
+    def __str__(self) -> str:
+        space = " " * 14
+        return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
 class SelectToolModel(BaseModel):
     """LLM Answer model for tool selection."""
     answer: str = Field(description="Next action:")
@@ -174,7 +185,7 @@ class ActionModel(BaseModel):
     timestamp: datetime
     llm_prompt: Optional[str] = None
     llm_response: Optional[
-        Union[YesNoModel, AnswerModel, ReflectionModel]] = None
+        Union[YesNoModel, AnswerModel, ReflectionModel, SummaryModel]] = None
     function_result: Optional[str] = None
 
     def __str__(self) -> str:
@@ -249,6 +260,17 @@ def append_friend(
     return left + [right]
 
 
+def add_lesson(left: set,
+               right: set | str) -> set:
+    """Reducer to add new knowledge."""
+    if right is None:
+        return left
+    elif isinstance(right, str):
+        return left.add(right)
+    elif isinstance(right, set):
+        return left | right
+
+
 # ~~~~~~~~~~~~~~~~~~ Tool output ~~~~~~~~~~~~~~~~~~
 
 class ToolOutputModel(BaseModel):
@@ -315,6 +337,7 @@ class AgentState(BaseModel):
     # Actions
     actions: Annotated[list[ActionModel], add_actions] = []
     opened_windows: Annotated[list[str], append_str] = []
+    learned_lessons: Annotated[set[str], add_lesson] = {}
 
     def __str__(self) -> str:
         lines = []
