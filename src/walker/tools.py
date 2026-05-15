@@ -4,7 +4,6 @@ from src.models import FriendInviteModel, ToolOutputModel
 from src.selenium.helpers import (
     get_current_url,
     interact_with_modal,
-    move_around,
     press_explore,
     press_share,
     read_visible_messages,
@@ -29,7 +28,8 @@ class WalkerTools:
             and what you've observed. Keep it short and human."""
             tool_output = ToolOutputModel()
             tool_output.visible_messages = read_visible_messages(self.driver)
-            tool_output.tool_message = send_message(self.driver, message)
+            tool_output.tool_message = send_message(self.driver,
+                                                    message.strip())
             tool_output.message = message
 
             return tool_output.model_dump_json()
@@ -50,7 +50,7 @@ class WalkerTools:
         tool_output.reply_to = reply_to
         tool_output.message = reply
         tool_output.visible_messages = read_visible_messages(self.driver)
-        tool_output.tool_message = send_message(self.driver, reply)
+        tool_output.tool_message = send_message(self.driver, reply.strip())
 
 
         return tool_output.model_dump_json()
@@ -66,7 +66,7 @@ class WalkerTools:
         tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
 
-
+    '''
     @register(_type="tool", _name="move_around")
     def move(
         self,
@@ -84,7 +84,7 @@ class WalkerTools:
         tool_output.visible_messages = read_visible_messages(self.driver)
         tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
-
+    '''
 
     @register(_type="tool", _name="open_window")
     def open_window(
@@ -147,19 +147,5 @@ class WalkerTools:
         tool_output.visible_messages = read_visible_messages(self.driver)
         tool_output.friend_invite = invite
         tool_output.current_url = url
-
-        return tool_output.model_dump_json()
-
-
-    @register(_type="tool", _name="check_new_messages")
-    def check_new_messages(self) -> str:
-        """
-        Look around and read any messages currently visible in the void.
-        If you've already checked and seen nothing new,
-        do something else instead."""
-        tool_output = ToolOutputModel()
-        messages = read_visible_messages(self.driver)
-        tool_output.visible_messages = messages
-        tool_output.tool_message = "You look around the void"
 
         return tool_output.model_dump_json()

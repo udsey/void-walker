@@ -10,9 +10,6 @@ from dashboard.styles import COLOR_SEQ
 
 dash.register_page(__name__, path="/")
 
-data = {name: fn() for name, fn in overview_map.items()}
-kpis = data["kpis"].iloc[0]
-
 
 def kpi_card(title, value) -> dbc.Col:
     return dbc.Col(
@@ -33,12 +30,15 @@ def kpi_card(title, value) -> dbc.Col:
     )
 
 
-sessions_over_time = data["sessions_over_time"]
-action_dist = data["action_distribution"]
-archetype_stats = data["archetype_stats"]
-exit_reasons = data["exit_reasons"]
 
-layout = html.Div([
+def layout():
+    data = {name: fn() for name, fn in overview_map.items()}
+    kpis = data["kpis"].iloc[0]
+    sessions_over_time = data["sessions_over_time"]
+    action_dist = data["action_distribution"]
+    archetype_stats = data["archetype_stats"]
+    exit_reasons = data["exit_reasons"]
+    return html.Div([
     html.H1("overview", className="mb-4"),
 
     # KPI cards 2x3

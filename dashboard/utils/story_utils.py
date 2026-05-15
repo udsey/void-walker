@@ -1,7 +1,6 @@
 """Story utils."""
 
 
-import time
 
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
@@ -176,14 +175,10 @@ template = env.get_template('story_pdf.html')
 def create_story_pdf(story: dict) -> bytes:
     """Generate pdf version of story."""
     try:
-        t0 = time.time()
         html_content = template.render(story=story)
-        print(f"render template: {time.time()-t0:.2f}s")
-        t1 = time.time()
         pdf_bytes = HTML(string=html_content).write_pdf(
             stylesheets=[CSS(filename='dashboard/utils/story.css')]
         )
-        print(f"write_pdf: {time.time()-t1:.2f}s")
         return pdf_bytes
     except Exception as e:
         print(f"PDF generation error: {e}")

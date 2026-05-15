@@ -62,7 +62,7 @@ def register_session_callbacks(
         if not session_id:
             return None
         return [html.Button(b.text, id=b.id,
-                            className='download-btn') for b in buttons]
+                            className='btn') for b in buttons]
 
     for b in buttons:
         extra_states = [State(sid, "data") for sid in b.extra_state_ids]

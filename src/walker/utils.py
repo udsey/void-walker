@@ -3,6 +3,7 @@
 import logging
 from typing import Callable, Literal
 
+import redis
 from dotenv import load_dotenv
 from langchain.chat_models import BaseChatModel
 from langchain_deepseek import ChatDeepSeek
@@ -10,7 +11,8 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_ollama import ChatOllama
 
-from src.setup import config
+from src.models import AgentState
+from src.setup import ENV, config
 
 logger = logging.getLogger(__name__)
 
@@ -70,3 +72,34 @@ def create_map(target, _type: str) -> dict:
         except Exception:
             continue
     return func_map
+
+host = 'localhost' if ENV == 'local' else 'redis'
+redis_sync = redis.Redis(host=host, port=6379, decode_responses=True)
+
+
+def publish_session(session_id: str) -> None:
+    """Publish session."""
+    redis_sync.sadd("observer:sessions", session_id)
+    redis_sync.expire("observer:sessions", 3600)
+    redis_sync.publish("observer:sessions", session_id)
+
+
+def remove_session(session_id: str) -> None:
+    """Remove session from Redis."""
+    redis_sync.srem("observer:sessions", session_id)
+
+
+
+def publish_current_url(session_id: str, current_url: str) -> None:
+    """Publish current url."""
+    redis_sync.setex(f"observer:session:{session_id}:url", 360, current_url)
+    redis_sync.publish(f"observer:session:{session_id}", current_url)
+
+
+def publish_state(session_id: str, state: AgentState) -> None:
+    """Publish graph state."""
+    state = state.model_dump_json()
+    redis_sync.setex(f"observer:session:{session_id}:graph",
+                     360, state)
+    redis_sync.publish(f"observer:session:{session_id}", state)
+

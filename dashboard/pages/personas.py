@@ -10,46 +10,53 @@ from dashboard.styles import GEO, PLOTLY_LAYOUT
 
 dash.register_page(__name__, path="/personas")
 
-data = {name: fn() for name, fn in personas_map.items()}
 
-world_fig = px.choropleth(
-    data["world_map"], locations="country",
-    locationmode="country names",
-    color="count",
-    title="personas by country",
-    template="plotly_dark",
-    color_continuous_scale="Purples"
-)
-world_fig.update_layout(
-    **PLOTLY_LAYOUT,
-    height=500,
-    margin={"r": 0, "t": 40, "l": 0, "b": 0},
-    geo=GEO
-)
 
-archetype_fig = px.bar(
-    data["archetypes"], x="count", y="archetype",
-    orientation="h",
-    title="archetype distribution",
-    template="plotly_dark"
-).update_layout(**PLOTLY_LAYOUT)
 
-social_fig = px.pie(
-    data["social_tendency"], names="social_tendency", values="count",
-    title="social tendency",
-    template="plotly_dark"
-)
-social_fig.update_layout(**PLOTLY_LAYOUT)
+def layout():
+    data = {name: fn() for name, fn in personas_map.items()}
 
-generation_fig = px.bar(
-    data["generations"], x="generation", y="count",
-    title="generation distribution",
-    template="plotly_dark",
-    category_orders={"generation": ["Boomer", "Gen X", "Millennial", "Gen Z"]}
-)
-generation_fig.update_layout(**PLOTLY_LAYOUT)
+    world_fig = px.choropleth(
+        data["world_map"], locations="country",
+        locationmode="country names",
+        color="count",
+        title="personas by country",
+        template="plotly_dark",
+        color_continuous_scale="Purples"
+    )
+    world_fig.update_layout(
+        **PLOTLY_LAYOUT,
+        height=500,
+        margin={"r": 0, "t": 40, "l": 0, "b": 0},
+        geo=GEO
+    )
 
-layout = html.Div([
+    archetype_fig = px.bar(
+        data["archetypes"], x="count", y="archetype",
+        orientation="h",
+        title="archetype distribution",
+        template="plotly_dark"
+    ).update_layout(**PLOTLY_LAYOUT)
+
+    social_fig = px.pie(
+        data["social_tendency"], names="social_tendency", values="count",
+        title="social tendency",
+        template="plotly_dark"
+    )
+    social_fig.update_layout(**PLOTLY_LAYOUT)
+
+    generation_fig = px.bar(
+        data["generations"], x="generation", y="count",
+        title="generation distribution",
+        template="plotly_dark",
+        category_orders={"generation": ["Boomer",
+                                        "Gen X",
+                                        "Millennial",
+                                        "Gen Z"]}
+    )
+    generation_fig.update_layout(**PLOTLY_LAYOUT)
+
+    return html.Div([
     dbc.Row([
         dbc.Col(dcc.Graph(figure=world_fig,
                           config={"responsive": True},

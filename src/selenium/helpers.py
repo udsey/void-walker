@@ -24,9 +24,9 @@ def configure_chrome() -> tuple[Chrome, WebDriverWait]:
     "profile.content_settings.exceptions.clipboard": {
         f"{config.root_url},*": {"last_modified": 1, "setting": 1}
     }})
+    options.add_argument("--window-size=1920,1080")
     if not config.walkers_config.verbose:
         options.add_argument("--headless=new")
-
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 

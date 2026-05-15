@@ -26,11 +26,24 @@ from src.models import (
     ToolOutputModel,
     YesNoModel,
 )
-from src.selenium.helpers import close_browser, configure_chrome, open_site
+from src.selenium.helpers import (
+    close_browser,
+    configure_chrome,
+    open_site,
+    read_visible_messages,
+)
 from src.setup import config, lessons_config, persona_config
 from src.walker.persona import create_persona
 from src.walker.tools import WalkerTools
-from src.walker.utils import create_map, load_llm, register
+from src.walker.utils import (
+    create_map,
+    load_llm,
+    publish_current_url,
+    publish_session,
+    publish_state,
+    register,
+    remove_session,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -210,7 +223,11 @@ class VoidWalker():
             logger.info(f"Start walker with session_id: {self.session_id[:8]}")
             _active_walkers.acquire()
             try:
+                publish_session(session_id=self.session_id)
+                publish_current_url(session_id=self.session_id,
+                                    current_url=self.persona.url)
                 response = self.graph.invoke(input=invoke_input)
+                remove_session(session_id=self.session_id)
                 self.state = AgentState(**response)
                 self.log_persona()
                 self.db.flush(self.state)
@@ -384,6 +401,7 @@ class VoidWalker():
         """Conditional node for site opening."""
         action = ActionModel(name=self.decide_open_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         if state.is_friend:
             message = (
@@ -413,6 +431,9 @@ class VoidWalker():
         """Node to initialize browser and llm tools."""
         action = ActionModel(name=self.initialize_tools_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
+
         self.driver, self.wait = configure_chrome()
         self.tools = self._make_tools()
         self.llm = llm.bind_tools(tools=self.tools)
@@ -424,12 +445,15 @@ class VoidWalker():
         """Node to open website."""
         action = ActionModel(name=self.open_site_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
         action.function_result = open_site(driver=self.driver,
                                            wait=self.wait,
                                            url=state.initial_url)
         self.log_action(action)
         return {
-            "actions": action
+            "actions": action,
+            "last_read_messages": read_visible_messages(self.driver)
         }
 
 
@@ -438,6 +462,7 @@ class VoidWalker():
         """Node to close website and browser."""
         action = ActionModel(name=self.close_website_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         action.function_result = close_browser(driver=self.driver)
         self.log_action(action)
@@ -457,6 +482,7 @@ class VoidWalker():
         """Node to give Walker context about website."""
         action = ActionModel(name=self.observe_site_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         message = (
             "You just opened void-cast. "
@@ -482,6 +508,7 @@ class VoidWalker():
             """Reflection node where Walker can change it's mood."""
             action = ActionModel(name=self.reflect_node._name,
                                  timestamp=datetime.now())
+            publish_state(session_id=state.session_id, state=state)
 
             last_action = self.to_reflection_context(state.actions[-1])
 
@@ -517,19 +544,22 @@ class VoidWalker():
         """Select next tool/action node."""
         action = ActionModel(name=self.select_action_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         EXCLUDED = {'reflect', 'select_action',
                     'initialize_tools', 'decide_open_website'}
         action_names = [
             a.name for a in state.actions if a.name not in EXCLUDED]
-        action_history = f"Action history: {action_names}\n"
 
         recent = action_names[-10:]
         counts = {}
         for name in recent:
             counts[name] = counts.get(name, 0) + 1
 
-        msgs = '; '.join([f'"{m.message}"' for m in state.sent_messages])
+        msgs = '; '.join([
+            f'(reply to: {m.reply_to}\nmessage: "{m.message}")' if m.reply_to
+            else f'(message: "{m.message})"\n'
+            for m in state.sent_messages])
         friends = ', '.join([
             invite.friends_name for invite in state.invited_friends])
 
@@ -542,15 +572,21 @@ class VoidWalker():
                     "Try something different.") if warnings else ""
 
         lessons = "\n".join(state.learned_lessons)
+        friend = (
+            ("Friend that invited you:"
+             f"{self.persona.friend_name} - {self.persona.friend_message}\n")
+            if state.is_friend
+            else "")
         message = (
             "LESSONS YOU'VE LEARNED:\n\n"
             f"{lessons}"
             "CURRENT STATE:\n\n"
-            f"- Action history: [{action_history}]\n"
+            f"- Action history: [{action_names}]\n"
             f"- Messages you can see: {state.last_read_messages}\n"
             f"- Messages you've sent: [{msgs}]\n"
             f"- Windows you've opened: {state.opened_windows}\n"
             f"- Friends you've invited: {friends}\n"
+            f"{friend}"
             f"- Current reflection: {state.reflection}\n\n"
             "Decide what to do next.")
 
@@ -571,11 +607,12 @@ class VoidWalker():
         """Node to check exit conditions."""
         action = ActionModel(name=self.check_conditions_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
         elapsed = datetime.now() - state.start_time
         n_actions = len(state.actions)
         self.log_action(action)
-        if n_actions % 10 < 2:
-            logger.info(
+        logger.info(
                 f"{self.actions_limit - n_actions} till action limit for "
                 f"walker {self.session_id[:8]}.")
         if n_actions > self.actions_limit:
@@ -598,9 +635,16 @@ class VoidWalker():
 
         tool_output = ToolOutputModel.model_validate_json(tool_output)
 
-        action = ActionModel(name=tool_call['name'],
-                            timestamp=datetime.now(),
-                            function_result=tool_output.tool_message)
+
+        action = ActionModel(
+            name=tool_call['name'],
+            timestamp=datetime.now(),
+            function_result=tool_output.tool_message)
+
+        publish_state(session_id=state.session_id, state=state)
+        publish_current_url(
+            session_id=self.session_id,
+            current_url=tool_output.current_url or state.current_url)
 
         if (
             tool_output.friend_invite
@@ -642,6 +686,8 @@ class VoidWalker():
         """Summarize on exit node."""
         action = ActionModel(name=self.summarize_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
         invited_friends = [f.friends_name for f in state.invited_friends]
 
         skip_actions = {"summarize",
