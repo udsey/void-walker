@@ -330,9 +330,6 @@ Customize:
 * attention spans.
 
 All persona generation is data-driven — new archetypes, moods, or countries can be added without changing code.
-
-For advanced setup and architecture details, see the `docs/` directory.
-
 ---
 
 ## Tech Stack
