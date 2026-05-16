@@ -1,3 +1,4 @@
+## Intro
 
 # void-walker
 
@@ -5,182 +6,198 @@
   <img src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=fff" alt="Python">
   <img src="https://img.shields.io/badge/LangChain-1c3c3c?logo=langchain&logoColor=white" alt="LangChain">
   <img src="https://img.shields.io/badge/LangGraph-1c3c3c?logo=langchain&logoColor=white" alt="LangGraph">
+  <img src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white" alt="Redis">
   <img src="https://img.shields.io/badge/Selenium-43B02A?logo=selenium&logoColor=fff" alt="Selenium">
-<img src="https://img.shields.io/badge/Dash-008DE4?logo=plotly&logoColor=fff" alt="Dash">
+  <img src="https://img.shields.io/badge/Dash-008DE4?logo=plotly&logoColor=fff" alt="Dash">
   <img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=fff" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff" alt="Docker">
 </p>
 
-**void-walker** is an autonomous agent that generates human-like personas to interact with [void-cast](https://github.com/udsey/void-cast).
+**void-walker** is an autonomous multi-agent system that generates persistent personas to explore and interact with [void-cast](https://github.com/udsey/void-cast).
 
-Three-in-one: QA tool, content seeder, and LLM behavior observatory. Each session spawns a unique persona that decides whether to enter the void, wanders the canvas, reacts to what it finds, and reflects on the experience — all LLM-driven.
+Each walker enters the void with its own identity, mood, memories, and behavioral tendencies. It navigates the website, reacts to messages, reflects on experiences, invites other agents, and gradually develops emergent narrative patterns — entirely through LLM-driven decisions.
 
-See [example session report](/docs/session_c1dcb682.zip) and [example story](/docs/story_c1dcb682.pdf)
+See:
+
+* [Example session report](https://github.com/udsey/void-walker/blob/main/docs/session_c1dcb682.zip)
+* [Example generated story](https://github.com/udsey/void-walker/blob/main/docs/story_c1dcb682.pdf)
 
 ---
 
-## Usage
+## Quick Start
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) and Docker Compose installed
-- [make](https://www.gnu.org/software/make/) (install if not present — used for convenience commands)
-- [uv](https://docs.astral.sh/uv/) package manager (for local setup only)
+* [Docker](https://docs.docker.com/get-docker/?utm_source=chatgpt.com) + Docker Compose
+* `make`
+* `uv` (optional, for local development)
 
+---
 
-### Configure environment variables
+### Configure environment
 
 ```bash
 cp .env.example .env
 ```
-Edit `.env` and fill in your values:
+
+Fill in your API keys and database settings:
+
 ```env
-# LLM Provider Keys (optional - only needed for cloud providers).
-# Set model_type in config.yaml: local | groq | gemini | deepseek
+# LLM provider (set in config.yaml)
+# local | groq | gemini | deepseek
 
-GROQ_API_KEY=your_key_here      # Required if using groq model_type
-GOOGLE_API_KEY=your_key_here    # Required if using gemini model_type
-DEEPSEEK_API_KEY=your_key_here  # Required if using deepseek model_type
-# For local (ollama), no API keys needed
+GROQ_API_KEY=
+GOOGLE_API_KEY=
+DEEPSEEK_API_KEY=
 
-# PostgreSQL Database
-DB_USER=postgres                # Database user
-DB_PASSWORD=your_password       # Database password
-DB_NAME=void_walker             # Database name
-DB_HOST=localhost               # For local setup only. Docker overrides this automatically.
-DB_PORT=5432                    # PostgreSQL default port
+# PostgreSQL
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_NAME=void_walker
+DB_HOST=localhost
+DB_PORT=5432
 
-# Data Retention
-ACTIONS_LIMIT=10000             # Max actions stored in DB. Cron job removes oldest sessions when exceeded
-LIBRE_API_KEY=                  # API key for translation service (generate random one)
+# Optional translation service
+LIBRE_API_KEY=
+
+# Retention policy
+ACTIONS_LIMIT=10000
 ```
+
 ---
 
-### Docker Setup (recommended)
+### Run with Docker (recommended)
 
-**1. Start all containers**
+Start the full stack:
+
 ```bash
 make docker-up
 ```
-This builds and starts the database, walker, and dashboard containers.
 
-**2. Run walkers**
+Run walkers:
+
 ```bash
-# Run 1 walker (default)
+# Single walker
 make docker-run-walkers
 
-# Run 5 walkers sequentially
+# Multiple walkers
 make docker-run-walkers n=5
 
-# Run 5 walkers in parallel
+# Parallel execution
 make docker-run-walkers n=5 parallel=true
 ```
 
-**3. View the dashboard**
-Open your browser to http://127.0.0.1:8050
+Open dashboard:
 
-**4. Stop the stack**
-```bash
-make docker-down           # stop containers
-make docker-down-volumes   # stop and wipe data
+```text
+http://127.0.0.1:8050
 ```
 
-**Useful Docker commands**
+Stop everything:
+
 ```bash
-make docker-logs            # follow all logs
-make docker-logs-db         # follow database logs only
-make docker-logs-walker     # follow walker logs only
-make docker-logs-dashboard  # follow dashboard logs only
+make docker-down
 ```
 
-### Local Setup (alternative)
+---
 
+### Local setup
 
-**1. Install dependencies**
+Install dependencies:
+
 ```bash
 uv sync
 ```
 
-**2. Set up the database**
+Setup database:
+
 ```bash
 make setup-db
 ```
 
-**3. Run walkers**
+Run walkers:
+
 ```bash
-make run-walkers           # 1 walker
-make run-walkers n=5       # 5 walkers sequentially
-make run-walkers n=5 parallel=true   # 5 walkers in parallel
+make run-walkers n=5 parallel=true
 ```
 
-**4. Start the dashboard**
+Start dashboard:
+
 ```bash
 make dashboard
 ```
-Visit `http://127.0.0.1:8050`
 
-**5. Generate a session report**
-```bash
-make report session_id=<your_session_id>
-```
-
-**Other local commands**
-```bash
-make recreate-db   # drop and recreate all tables
-make drop-db       # drop all tables
-```
 ---
 
+### Other commands
+
+```bash
+make
+```
+
+Shows all available make commands.
+
+
 ## Dashboard
-<img width="1800" height="958" alt="image" src="https://github.com/user-attachments/assets/b310ab64-616b-437a-8536-21360fb5748c" />
+
+![alt text](docs/dash.png)
+A local `Plotly Dash` dashboard for exploring autonomous agent behavior in real time.
+
+Available views:
+
+* **Overview** — sessions, actions, mood shifts, activity timelines, exits, and social interactions.
+* **Monitor** — near real-time walker monitoring powered by Redis. Track active sessions live: current state and active URL. Includes an **Open Session** button that redirects directly to the walker’s current `void-cast` location and updates as the agent moves through the void.
+* **Story** — converts raw LLM execution logs into readable narrative transcripts generated from session state and reflections. Stories can also be translated through [LibreTranslate](https://libretranslate.com/) integration. See [example story](https://github.com/udsey/void-walker/blob/main/docs/story_c1dcb682.pdf?utm_source=chatgpt.com)
+* **Personas** — archetypes, countries, languages, social tendencies, and generation distribution.
+* **Mood** — mood drift over time and archetype-specific emotional patterns.
+* **Raw Tables** — direct PostgreSQL table explorer with filtering and session navigation.
+
+> **Note:**
+>
+> * **Monitor** requires Redis (included automatically in Docker setup or available through a local Redis instance).
+> * **Story translation** requires a running LibreTranslate service (included in Docker setup or runnable locally as a separate container).
 
 
-A local `Plotly Dash` app for exploring session logs. Access it at http://127.0.0.1:8050 after starting the dashboard (see Usage section).
+Session reports can be exported as ZIP archives containing:
 
-
-
-**Overview** — KPI cards (sessions, actions, messages, mood shifts), sessions over time, action distribution, friend vs solo split, exit reasons.
-
-**Session** — Drill into any session: full action timeline with LLM prompts/responses, mood shifts, tool usage stats, and session metadata. Click **download report** to export session data as a zip of CSVs (overview, actions, messages, mood timeline, invites, feedback, tool usage).
-
-**Personas** — World map of persona origins, archetype/generation/social tendency distributions.
-
-**Mood** — Most shifted-into moods and mood timeline by archetype.
-
-**Raw Tables** — Direct view of all database tables with sort/filter. Click any session ID to jump to the session detail page.
-
+* actions,
+* messages,
+* reflections,
+* mood timelines,
+* invites,
+* metadata,
+* tool usage stats.
 
 ---
 
 ## Persona System
 
-Each session generates a unique persona composed of randomized traits:
+Each session spawns a persistent persona with randomized identity, behavior, and emotional tendencies.
 
-| Field | Options |
-|---|---|
-| Generation | Boomer · Gen X · Millennial · Gen Z |
-| Age | Randomized within generation range (e.g., Millennial: 28-43) |
-| Gender | male · female · non-binary |
-| Country | Random from 16 countries (US, UK, Japan, Brazil, etc.) |
-| Native language | Derived from country (e.g., Japan → Japanese) |
-| Secondary languages | 0-3 additional languages from a shared pool of 10 |
-| Archetype | wanderer · philosopher · trickster · romantic · skeptic · socialite · ghost · poet |
-| Mood | curious · melancholic · restless · euphoric · anxious · bored · nostalgic · playful |
-| Social tendency | shy · neutral · extrovert |
-| Attention span | low · medium · high |
-| Name | Country- and gender-appropriate name from persona config (except friend session) |
+| Field               | Examples                                                   |
+| ------------------- | ---------------------------------------------------------- |
+| Generation          | Boomer · Gen X · Millennial · Gen Z                        |
+| Archetype           | wanderer · philosopher · romantic · skeptic · ghost · poet |
+| Mood                | curious · melancholic · restless · nostalgic · playful     |
+| Social tendency     | shy · neutral · extrovert                                  |
+| Country & language  | Japan → Japanese, Brazil → Portuguese, etc.                |
+| Secondary languages | 0–3 additional languages                                   |
+| Attention span      | low · medium · high                                        |
+| Name                | Country- and gender-aware generated names                  |
 
-Mood can drift over the session in `reflect` node. The system prompt is injected into every LLM call; the archetype key is never passed, only its behavioral description (see `persona_config.yaml` for archetype definitions).
+Personas are injected into every LLM call through a dynamic system prompt.
+The model never receives archetype labels directly — only behavioral descriptions Mood evolves during the run through reflection nodes.
 
-Friend sessions receive a separate randomly assigned persona with two constraints:
-- Shares at least one language with the inviting walker (either native or secondary)
-- Name is preserved from the invite message (the inviting walker chooses how to address them) — may not match their country or gender
+Friend sessions generate separate personas with shared-language constraints, allowing walkers to organically form multilingual interactions.
+
+The result is long-running behavioral consistency rather than isolated single-turn roleplay.
 
 ---
 
 ## Walker Graph
 
-Each walker follows a LangGraph state machine that controls the session lifecycle — from deciding whether to enter the void, to taking actions, reflecting on outcomes, and finally exiting.
+Each walker follows a LangGraph state machine that controls the full lifecycle of the session — entering the void, observing, interacting, reflecting, inviting others, and eventually leaving.
 
 ```mermaid
 ---
@@ -242,131 +259,125 @@ classDef default fill:#f2f0ff,line-height:1.2
 classDef first fill-opacity:0
 classDef last fill:#bfb6fc
 classDef tool fill:#ddf0dd,line-height:1.2
-
 ```
 
----
+Core loop:
 
-## State
-
-Key fields carried through the graph:
-
-| Field | Description |
-|---|---|
-| `session_id` / `parent_session_id` | Session identity; parent set for friend sessions |
-| `name` / `mood` / `system_prompt` | Active persona identity |
-| `initial_url` / `current_url` | Navigation tracking |
-| `summary` / `reflection` | `reflection`: post-action inner monologue. `summary`: final session summary written at exit (actions taken, messages sent, mood journey, exit reason, etc.) |
-| `feedback` | Accumulated end-of-session reflections |
-| `is_friend` | Whether this session was spawned by an invite |
-| `invited_friends` | List of `FriendInviteModel` — name, shared URL, common language, friend session ID |
-| `sent_messages` | Sent messages with content, optional reply target, and timestamp |
-| `last_read_messages` | Latest messages visible on the canvas |
-| `actions` | Full action log — name, timestamp, LLM prompt/response, function result |
-| `opened_windows` | Windows opened during the session |
-| `exit_reason` | Why the session ended |
+1. observe environment,
+2. reflect internally,
+3. select and execute tool,
+5. repeat until exit conditions are reached.
 
 ---
 
-## Database Schema
-<img width="1352" height="774" alt="image" src="https://github.com/user-attachments/assets/81a1d66b-7de0-4a3c-a96f-af457c0f8f81" />
+## State & Persistence
 
-All sessions are logged to a local PostgreSQL database (separate from void-cast). The schema consists of 7 tables with foreign key relationships to `sessions`:
+Every session maintains persistent state across the graph run, including:
 
-| Table | Description |
-|---|---|
-| `sessions` | Session identity, model config, URLs, timing, action/invite counts, exit reason, summary, etc. |
-| `personas` | Full persona snapshot — age, generation, gender, country, languages, archetype, mood |
-| `actions` | Every node execution — name, timestamp, LLM prompt/answer/reason, function result |
-| `messages` | Sent and received messages, reply target, messages visible at time of send |
-| `reflections` | Per-action mood before/after, inner monologue, mood shift flag |
-| `invites` | Invite details — names, common language, shared URL, message, spawned friend session ID |
-| `feedback` | Feedback written via the `send_feedback` tool (zero or more per session) |
+* persona identity and system prompt,
+* mood and reflection history,
+* visited locations and opened windows,
+* sent/received messages,
+* friend invitations,
+* action history,
+* final session summary and exit reason.
 
-Data is flushed in a single batch after the session finishes — no database writes occur during the run.
+All runs are logged to PostgreSQL for later analysis and replay.
+
+Core tables:
+
+* `sessions` — metadata, timing, summaries, exit reasons,
+* `personas` — generated identity snapshot,
+* `actions` — every graph node execution and tool call,
+* `messages` — sent and received messages,
+* `reflections` — inner monologues and mood drift,
+* `invites` — spawned friend sessions,
+* `feedback` — optional end-of-session thoughts.
+
+Data is written in a single batch after the session finishes, preserving full execution history without interrupting runtime behavior.
 
 ---
 
 ## Configuration
 
-### config.yaml
+Main behavior is controlled through two files:
 
-| Section | Description |
-|---------|-------------|
-| `llm_config` | LLM provider and behavior. `model_type`: `local` (ollama), `groq`, `gemini`, or `deepseek`. `model_name` depends on provider. `temperature`: 0-2 for response randomness |
-| `walkers_config` | Session limits. `action_limit`: max actions per session. `time_limit`: max minutes per session. `active_walkers_limit`: number currently running. `total_walkers_limit`: total per `run-walkers` command. `friends_limit`: max friends per session. `verbose`: detailed logging |
-| `root_url` | Target void-cast instance URL |
-| `status_config` | Maps each tool to success/failure messages fed back to the LLM after action execution |
-| `wait_timeout` | Selenium wait timeout in seconds |
+* `config.yaml` — runtime, LLM, and walker settings
+* `persona_config.yaml` — persona generation rules
 
-### persona_config.yaml
+### `config.yaml`
 
-Controls persona randomization. All sections are customizable — add, remove, or edit any field.
+Configure:
 
-| Section | Description |
-|---------|-------------|
-| `archetypes` | Keys (`ghost`, `philosopher`, etc.) map to behavioral descriptions injected into system prompt. The key itself is never passed to the LLM |
-| `countries` | Country code and mother language. Format: `Country: [code, mother_language]` |
-| `languages_pool` | Pool of second languages (0-2 randomly assigned) |
-| `genders` | `male`, `female`, `non-binary` |
-| `generations` | Age ranges. Walker randomizes age within `min`/`max` |
-| `moods` | Available moods for persona generation and drift (walkers not forced to choose from it, so during reflection they can add different moods.) |
-| `names` | Per-country, per-gender name lists. Friend sessions may override name/language (not gender/country specific) |
-| `social_tendencies` | `shy`, `neutral`, `extrovert` |
-| `attention_spans` | `low`, `medium`, `high` |
+* LLM provider (`ollama`, `groq`, `gemini`, `deepseek`)
+* model name and temperature,
+* walker limits and concurrency,
+* session/action/time limits,
+* root `void-cast` URL,
+* Selenium timeouts,
+* status messages fed back into the agent loop.
+
+### `persona_config.yaml`
+
+Customize:
+
+* archetypes and behavioral descriptions,
+* countries and languages,
+* moods,
+* generations and age ranges,
+* names,
+* social tendencies,
+* attention spans.
+
+All persona generation is data-driven — new archetypes, moods, or countries can be added without changing code.
+
+For advanced setup and architecture details, see the `docs/` directory.
 
 ---
 
-## Project Structure
+## Tech Stack
 
-```
-├── configs/                         # User-editable configuration
-│   ├── config.yaml                  # LLM settings, walker limits, root URL, status messages
-│   └── persona_config.yaml          # Archetypes, countries, names, moods, generations
-│
-├── dashboard/                       # Plotly Dash web app
-│   ├── app.py                       # Dash application entry point
-│   ├── db.py                        # Database queries for dashboard visualizations
-│   ├── styles.py                    # Colors and styles used across dashboard pages
-│   ├── pages/                       # Dashboard tabs (overview, session, persona, mood, raw_tables)
-│   └── assets/                      # Static assets (CSS)
-│
-├── src/                             # Core source code
-│   ├── db/                          # Database layer
-│   │   ├── db.py                    # Database connection (create/drop tables)
-│   │   ├── db_writer.py             # Batch writer for logging graph runs
-│   │   ├── utils.py                 # generate_report() for session exports (make report)
-│   │   └── sql/                     # SQL schemas and views (see Database Schema)
-│   │
-│   ├── selenium/                    # Browser automation
-│   │   ├── helpers.py               # All automation functions
-│   │   └── utils.py                 # Development helpers (e.g., highlight element on page)
-│   │
-│   ├── walker/                      # LangGraph agent core
-│   │   ├── walker.py                # Walker class — graph nodes and flow (excluding tools)
-│   │   ├── tools.py                 # Walker tools (send_message, move_around, etc.)
-│   │   ├── persona.py               # Persona generation logic
-│   │   ├── run.py                   # run_walkers() (number of walkers, parallel/sequential)
-│   │   └── utils.py                 # Helpers: wrappers, name-to-function maps, llm_call
-│   │
-│   ├── models.py                    # Pydantic models
-│   └── setup.py                     # Load configs, .env, set BASE_DIR etc.
-│
-├── data/                            # Auto-created. Stores exported session reports (make report)
-│
-├── compose.yaml                     # Docker Compose (db, walker, dashboard services with healthchecks)
-├── Dockerfile.db                    # PostgreSQL with pg_cron and retention policy (ACTIONS_LIMIT)
-├── Dockerfile.walker                # Walker container — Chromium + dependencies, runs with WALKERS_N/PARALLEL
-├── Dockerfile.dashboard             # Dashboard container — serves Dash app on port 8050
-├── makefile                         # All make commands (run-walkers, docker-up, report, etc.)
-├── pyproject.toml                   # Python dependencies and project metadata
-├── uv.lock                          # Locked dependency versions
-└── README.md
-```
+* **LLM orchestration:** [LangChain](https://www.langchain.com/?utm_source=chatgpt.com) + [LangGraph](https://www.langchain.com/langgraph?utm_source=chatgpt.com)
+* **Backend:** [FastAPI](https://fastapi.tiangolo.com/?utm_source=chatgpt.com)
+* **Browser automation:** [Selenium](https://www.selenium.dev/?utm_source=chatgpt.com) + Chromium
+* **Dashboard:** [Plotly Dash](https://plotly.com/dash/?utm_source=chatgpt.com)
+* **Database:** [PostgreSQL](https://www.postgresql.org/?utm_source=chatgpt.com)
+* **Caching / coordination:** [Redis](https://redis.io/?utm_source=chatgpt.com)
+* **Containerization:** [Docker](https://www.docker.com/?utm_source=chatgpt.com)
+* **Validation & models:** [Pydantic](https://docs.pydantic.dev/latest/?utm_source=chatgpt.com)
 
-**Key modules:**
+Supported providers:
 
-- `src/walker/` — LangGraph state machine.
-- `src/selenium/` — Browser automation.
-- `src/db/` — DB logic.
-- `dashboard/` — Standalone Dash app.
+* Ollama (local)
+* Groq
+* Gemini
+* DeepSeek
+
+---
+## Tech Stack
+
+* **LLM orchestration:** [LangChain](https://www.langchain.com/?utm_source=chatgpt.com) + [LangGraph](https://www.langchain.com/langgraph?utm_source=chatgpt.com)
+* **Browser automation:** [Selenium](https://www.selenium.dev/?utm_source=chatgpt.com) + Chromium
+* **Dashboard:** [Plotly Dash](https://plotly.com/dash/?utm_source=chatgpt.com)
+* **Database:** [PostgreSQL](https://www.postgresql.org/?utm_source=chatgpt.com)
+* **Realtime session state:** [Redis](https://redis.io/?utm_source=chatgpt.com)
+* **Live state streaming:** [FastAPI](https://fastapi.tiangolo.com/?utm_source=chatgpt.com)
+* **Containerization:** [Docker](https://www.docker.com/?utm_source=chatgpt.com)
+* **Validation & models:** [Pydantic](https://docs.pydantic.dev/latest/?utm_source=chatgpt.com)
+
+Supported providers:
+
+* Ollama (local)
+* Groq
+* Gemini
+* DeepSeek
+
+---
+
+## License
+
+MIT License.
+
+Feel free to use, modify, and experiment with the project.
+
+---
