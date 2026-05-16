@@ -50,9 +50,9 @@ def layout(id=None, **kwargs):
     options = get_session_options(SESSION_TEMPLATE)
     return html.Div([
         dcc.Store(id="cell-click-store"),
-            dbc.Modal([
-                dbc.ModalHeader(close_button=True),
-                dbc.ModalBody(id="cell-modal-body"),
+        dbc.Modal([
+            dbc.ModalHeader(close_button=True),
+            dbc.ModalBody(id="cell-modal-body"),
             ], id="cell-modal", is_open=False),
         session_dropdown(options, id="session-dropdown", value=id),
         dcc.Location(id="session-url"),
@@ -92,6 +92,7 @@ def load_session(session_id) -> html.P:
             for name, df in tables.items()
         ]
     ])
+
 
 @callback(
     Output("cell-modal", "is_open", allow_duplicate=True),

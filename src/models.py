@@ -130,6 +130,7 @@ class YesNoModel(BaseModel):
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+
 class AnswerModel(BaseModel):
     """Basic LLM Answer model."""
     answer: Optional[str] = Field(
@@ -140,6 +141,7 @@ class AnswerModel(BaseModel):
     def __str__(self) -> str:
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
 
 class SummaryModel(BaseModel):
     """Summary model for end-of-session reflection."""
@@ -152,6 +154,7 @@ class SummaryModel(BaseModel):
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+
 class SelectToolModel(BaseModel):
     """LLM Answer model for tool selection."""
     answer: Optional[str] = Field(
@@ -162,6 +165,7 @@ class SelectToolModel(BaseModel):
     def __str__(self) -> str:
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
 
 class ReflectionModel(BaseModel):
     """LLM Answer model for reflection node."""
@@ -176,6 +180,7 @@ class ReflectionModel(BaseModel):
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+
 class GenderPrediction(BaseModel):
     """Predicted gender from a given name."""
     gender: Literal["male", "female"] = Field(
@@ -184,6 +189,7 @@ class GenderPrediction(BaseModel):
         description="Confidence score between 0 and 1")
 
 # ~~~~~~~~~~~~~~~~~~ State attributes ~~~~~~~~~~~~~~~~~~
+
 
 class ActionModel(BaseModel):
     """Action model for graph."""
@@ -235,6 +241,7 @@ def add_actions(
     if isinstance(right, list):
         return left + right
     return left + [right]
+
 
 def append_str(
         left: list[str],
@@ -295,12 +302,10 @@ class ToolOutputModel(BaseModel):
         return SentMessageModel(message=self.message,
                                 reply_to=self.reply_to)
 
-
     def to_friend_invite(self) -> FriendInviteModel | None:
         if not self.friend_invite:
             return None
         return self.friend_invite
-
 
 
 # ~~~~~~~~~~~~~~~~~~ Agent State ~~~~~~~~~~~~~~~~~~
@@ -360,7 +365,6 @@ class AgentState(BaseModel):
                 lines.append(f"{k}: {v}")
                 lines.append(separator)
         return "\n".join(lines)
-
 
     @field_validator('actions', mode='before')
     @classmethod

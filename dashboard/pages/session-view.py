@@ -14,6 +14,7 @@ layout = html.Div([
     html.Div(id="session-view-dummy")
 ])
 
+
 @dash.callback(
     Output("session-view-url-store", "data"),
     Input("session-view-poll", "n_intervals"),

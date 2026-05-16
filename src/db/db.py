@@ -18,7 +18,6 @@ DB_CONFIG = {
 }
 
 
-
 async def create_database() -> None:
     """Create database if not exists."""
     config = DB_CONFIG.copy()

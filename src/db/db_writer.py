@@ -22,18 +22,15 @@ class DatabaseWriter:
                                            "messages", "invites",
                                            "feedback", "persona"]}
 
-
     def add(self, event_name: str, event: dict) -> None:
         """Add an event to buffer."""
 
         self.buffer[event_name].append(event)
 
-
     def init_pool(self) -> None:
         """Initialize database connection"""
 
         self.conn = psycopg2.connect(**DB_CONFIG)
-
 
     def flush(self, final_state: AgentState) -> None:
         """Write everything to DB in a single transaction"""
@@ -77,13 +74,22 @@ class DatabaseWriter:
                             attention_span, mood, is_friend, system_prompt)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                              %s, %s, %s, %s, %s)
-                """, (session_id, p['timestamp'], p['name'],
-                      p['age'], p['generation'],
-                    p['gender'], p['country'], p['mother_language'],
-                    p['second_languages'], p['archetype'],
-                    p['archetype_description'], p['social_tendency'],
-                    p['attention_span'], p['mood'],
-                    p['is_friend'], p['system_prompt']))
+                """, (session_id,
+                      p['timestamp'],
+                      p['name'],
+                      p['age'],
+                      p['generation'],
+                      p['gender'],
+                      p['country'],
+                      p['mother_language'],
+                      p['second_languages'],
+                      p['archetype'],
+                      p['archetype_description'],
+                      p['social_tendency'],
+                      p['attention_span'],
+                      p['mood'],
+                      p['is_friend'],
+                      p['system_prompt']))
 
             # Batch insert actions - convert dicts to tuples
 
@@ -126,8 +132,6 @@ class DatabaseWriter:
                                is_sent, last_read_messages)
                     VALUES %s
                 """, messages_data)
-
-
             # Batch insert invites
 
             if self.buffer["invites"]:
@@ -168,6 +172,3 @@ class DatabaseWriter:
             raise e
         finally:
             cur.close()
-
-
-

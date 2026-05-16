@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+
 def load_llm() -> BaseChatModel:
     """Load llm with params."""
     model_type = config.llm_config.model_type
@@ -26,9 +27,9 @@ def load_llm() -> BaseChatModel:
 
     if model_type == "groq":
         return ChatGroq(
-        model=config.llm_config.model_name,
-        temperature=config.llm_config.temperature
-        )
+            model=config.llm_config.model_name,
+            temperature=config.llm_config.temperature
+            )
     elif model_type == "local":
         return ChatOllama(
             model=config.llm_config.model_name,
@@ -51,12 +52,12 @@ def load_llm() -> BaseChatModel:
 
 
 def register(_name: str, _type: Literal["node", "router", "tool"]):
-        """Wrapper to add attributes to graph tools, routers and nodes."""
-        def decorator(func: Callable):
-            func._name = _name
-            func._type = _type
-            return func
-        return decorator
+    """Wrapper to add attributes to graph tools, routers and nodes."""
+    def decorator(func: Callable):
+        func._name = _name
+        func._type = _type
+        return func
+    return decorator
 
 
 def create_map(target, _type: str) -> dict:
@@ -66,12 +67,13 @@ def create_map(target, _type: str) -> dict:
         try:
             method = getattr(target, name)
             if (callable(method)
-                and hasattr(method, '_type')
-                and getattr(method, '_type') == _type):
+                    and hasattr(method, '_type')
+                    and getattr(method, '_type') == _type):
                 func_map[getattr(method, '_name')] = method
         except Exception:
             continue
     return func_map
+
 
 host = 'localhost' if ENV == 'local' else 'redis'
 
@@ -99,7 +101,6 @@ def remove_session(session_id: str) -> None:
     redis_sync.srem("observer:sessions", session_id)
 
 
-
 def publish_current_url(session_id: str, current_url: str) -> None:
     """Publish current url."""
     if not redis_sync:
@@ -116,4 +117,3 @@ def publish_state(session_id: str, state: AgentState) -> None:
     redis_sync.setex(f"observer:session:{session_id}:graph",
                      360, state)
     redis_sync.publish(f"observer:session:{session_id}", state)
-

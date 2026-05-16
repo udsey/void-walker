@@ -34,7 +34,6 @@ LANGUAGE_OPTIONS = [
 ]
 
 
-
 register_session_callbacks(
     dropdown_id="story-dropdown",
     button_container_id="story-buttons",
@@ -53,12 +52,14 @@ register_session_callbacks(
 def layout() -> dbc.Container:
     options = get_session_options(SESSION_TEMPLATE)
     return dbc.Container([
-        html.Button(html.I(className="bi bi-chevron-left"),
-                        id="prev-session-btn",
-                        className="nav-btn-prev"),
-        html.Button(html.I(className="bi bi-chevron-right"),
-                        id="next-session-btn",
-                        className="nav-btn-next"),
+        html.Button(html.I(
+            className="bi bi-chevron-left"),
+            id="prev-session-btn",
+            className="nav-btn-prev"),
+        html.Button(html.I(
+            className="bi bi-chevron-right"),
+            id="next-session-btn",
+            className="nav-btn-next"),
         html.Div([
             session_dropdown(options,
                              id="story-dropdown",
@@ -74,8 +75,7 @@ def layout() -> dbc.Container:
                 custom_spinner=html.Div("Loading...", style={
                     "position": "absolute",
                     "top": "100px",
-                        }),
-)
+                        }))
 
         ], className="story-shell", id="story-shell")
     ], fluid=True, className="story-container")
@@ -104,15 +104,15 @@ def show_language_dropdown(session_id):
     if not session_id or not translator.translator:
         return None
     return html.Div(
-    dcc.Dropdown(
-        id="language-dropdown",
-        options=LANGUAGE_OPTIONS,
-        value="original",
-        clearable=True,
-        className="language-dropdown"
-    ),
-    id=f"language-wrapper-{session_id}"
-)
+        dcc.Dropdown(
+            id="language-dropdown",
+            options=LANGUAGE_OPTIONS,
+            value="original",
+            clearable=True,
+            className="language-dropdown"
+        ),
+        id=f"language-wrapper-{session_id}"
+        )
 
 
 @callback(
@@ -249,7 +249,6 @@ def render_event(event: dict) -> dbc.Card:
         ]),
         className="story-event-card"
     )
-
 
 
 @callback(

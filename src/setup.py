@@ -74,4 +74,3 @@ lessons_config = load_config_file(path)
 path = os.path.join(BASE_DIR, 'configs/config.yaml')
 config = load_config_file(path)
 config = ConfigModel(**config)
-

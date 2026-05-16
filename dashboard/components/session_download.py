@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from dashboard.db import get_sessions
 
 logger = logging.getLogger(__name__)
+
+
 class ButtonModel(BaseModel):
     id: str
     text: str
@@ -47,7 +49,6 @@ def session_dropdown(options,
     )
 
 
-
 def register_session_callbacks(
     dropdown_id,
     button_container_id,
@@ -81,4 +82,3 @@ def register_session_callbacks(
             session_id = args[1]
             extra_args = args[2:]
             return func(session_id, *extra_args)
-

@@ -19,24 +19,25 @@ layout = html.Div([
     dbc.Modal([dbc.ModalBody(id="cell-modal-body")],
               id="cell-modal",
               is_open=False),
-    session_dropdown(
-        options=get_sessions(),
-        id='observer-session-dropdown'),
-        html.A("Open Session",
-                id="open-session-btn",
-                target="_blank",
-                href="#",
-                className="btn btn-primary",
-                style={"display": "none"}),
-        html.Div(id="session-table-wrapper",
-                 style={"display": "none"}, children=[
+    session_dropdown(options=get_sessions(), id='observer-session-dropdown'),
+    html.A(
+        "Open Session",
+        id="open-session-btn",
+        target="_blank",
+        href="#",
+        className="btn btn-primary",
+        style={"display": "none"}),
+    html.Div(
+        id="session-table-wrapper",
+        style={"display": "none"},
+        children=[
             dash_table.DataTable(
                 id="session-table",
-                columns=[{"name": "Key", "id": "key"},
-                        {"name": "Value", "id": "value"}],
+                columns=[
+                    {"name": "Key", "id": "key"},
+                    {"name": "Value", "id": "value"}],
                 data=[],
-                **TABLE_STYLE)],
-        )])
+                **TABLE_STYLE)])])
 
 
 @callback(

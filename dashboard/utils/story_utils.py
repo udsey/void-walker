@@ -1,7 +1,5 @@
 """Story utils."""
 
-
-
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import CSS, HTML
@@ -21,6 +19,7 @@ ACTION_MAP = {
     'respond_to_message': 'RESPONDING TO SOMEONE',
     'open_website': 'ENTERING THE VOID',
     'close_website': 'LEAVING THE VOID'}
+
 
 def create_title(walker_id: str) -> str:
     """Create title."""
@@ -42,7 +41,7 @@ def create_header(persona: pd.DataFrame
               "country": f"{persona.country.values[0]}",
               "languages": f"{native_l} (native){second_l}",
               "mood": f"{mood_line}"
-    }
+              }
     sub_title = f"Session #{str(persona.session_id.values[0])[:8]}"
 
     return {
@@ -74,15 +73,12 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
         header = f"[{row.time}] {mood} < {ACTION_MAP[row.action_name]} >"
         system_error = None
 
-        if (
-            isinstance(row.function_result, str)
-            ):
+        if isinstance(row.function_result, str):
             system_message = row.function_result.strip()
             if len(system_message) > 600:
                 system_message = system_message[:600] + '...'
         else:
             system_message = None
-
 
         if row.action_name == 'invite_friend':
             text = f"to {row.friend_name}:\n\n{row.invite_message}"
@@ -102,39 +98,42 @@ def create_event_block(session_breakdown: pd.DataFrame) -> dict:
 
         last_mood = mood
 
-
         event = {
             'header': header,
             'text': text,
             'system_message': system_message,
             'system_error': system_error,
-            'reflection': row.reflection.strip()
-                if isinstance(row.reflection, str) and row.reflection.strip()
-                else None,
-            'selection': row.selection_reason.strip()
-                if isinstance(row.selection_reason, str)
-                and row.selection_reason.strip()
-                else None,
-            'llm_answer': row.llm_answer.strip()
-                if (isinstance(row.llm_answer, str)
-                     and row.llm_answer.strip()
-                     and row.llm_answer not in {'true', 'false'})
-                else None,
-        }
+            'reflection': (
+                row.reflection.strip() if isinstance(
+                    row.reflection, str) and row.reflection.strip()
+                else None),
+            'selection': (
+                row.selection_reason.strip() if isinstance(
+                    row.selection_reason, str) and row.selection_reason.strip()
+                else None),
+            'llm_answer': (
+                row.llm_answer.strip() if (
+                    isinstance(row.llm_answer, str)
+                    and row.llm_answer.strip()
+                    and row.llm_answer not in {'true', 'false'})
+                else None)
+                }
 
         if action_name == "decide_open_website":
 
-            event['system_message'] = (row.llm_prompt.strip()
-                if (isinstance(row.llm_prompt, str)
-                     and row.llm_prompt.strip()
-                     and row.llm_prompt not in {'true', 'false'})
+            event['system_message'] = (
+                row.llm_prompt.strip() if (
+                    isinstance(row.llm_prompt, str)
+                    and row.llm_prompt.strip()
+                    and row.llm_prompt not in {'true', 'false'})
                 else None)
-            event['reflection'] = (row.llm_reason.strip()
-                        if (isinstance(row.llm_reason, str)
-                            and row.llm_reason.strip()
-                            and row.llm_reason not in {'true', 'false'})
-                            else '')
 
+            event['reflection'] = (
+                row.llm_reason.strip() if (
+                    isinstance(row.llm_reason, str)
+                    and row.llm_reason.strip()
+                    and row.llm_reason not in {'true', 'false'})
+                else '')
 
         events.append(event)
 
@@ -183,4 +182,3 @@ def create_story_pdf(story: dict) -> bytes:
     except Exception as e:
         print(f"PDF generation error: {e}")
         raise
-

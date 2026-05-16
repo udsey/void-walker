@@ -37,7 +37,7 @@ PLOTLY_LAYOUT = {
     "plot_bgcolor": "#000000",
     "font": {"color": "#cccccc", "family": "Inter"},
     "colorway": ["#7c6fcd", "#5b8fa8", "#7a9e7e", "#c4956a",
-                  "#b07090", "#8fa8c8", "#a89070", "#6b9e9e"]
+                 "#b07090", "#8fa8c8", "#a89070", "#6b9e9e"]
 }
 
 
@@ -54,7 +54,7 @@ MOOD_COLORS = {
 
 
 COLOR_SEQ = ["#7c6fcd", "#7a9e7e", "#c4956a", "#b07090",
-              "#8fa8c8", "#a89070", "#6b9e9e", "#9e7a7a", "#7a8fa8"]
+             "#8fa8c8", "#a89070", "#6b9e9e", "#9e7a7a", "#7a8fa8"]
 
 
 GEO = dict(

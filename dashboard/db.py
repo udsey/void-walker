@@ -27,6 +27,7 @@ def query(sql: str, params: tuple = None) -> pd.DataFrame:
 
 # ~~~~~~~~~~~~~~~~~~ RAW Tables Page ~~~~~~~~~~~~~~~~~~
 
+
 def get_sessions() -> pd.DataFrame:
     """Get sessions table."""
     return query("""select * from sessions
@@ -74,7 +75,6 @@ def get_personas() -> pd.DataFrame:
     return query("""select * from personas
                     order by created_at desc
                     limit 100""")
-
 
 
 raw_map = {
@@ -386,6 +386,7 @@ def get_persona_world_map() -> pd.DataFrame:
         group by country order by count desc
     """)
 
+
 def get_archetype_distribution() -> pd.DataFrame:
     """Get archetype distribution."""
     return query("""
@@ -393,6 +394,7 @@ def get_archetype_distribution() -> pd.DataFrame:
         from personas
         group by archetype order by count desc
     """)
+
 
 def get_social_tendency_distribution() -> pd.DataFrame:
     """Get social tendency distribution."""
@@ -402,6 +404,7 @@ def get_social_tendency_distribution() -> pd.DataFrame:
         group by social_tendency order by count desc
     """)
 
+
 def get_generation_distribution() -> pd.DataFrame:
     """Get generation distribution."""
     return query("""
@@ -409,6 +412,7 @@ def get_generation_distribution() -> pd.DataFrame:
         from personas
         group by generation order by count desc
     """)
+
 
 personas_map = {
     "world_map": get_persona_world_map,
@@ -502,7 +506,3 @@ novel_map = {
     'session_breakdown': get_session_breakdown,
     'persona': get_persona
 }
-
-
-
-

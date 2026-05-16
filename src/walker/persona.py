@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 llm = load_llm().with_structured_output(GenderPrediction)
 
+
 def create_persona(friend_invite: Optional[FriendInviteModel] = None,
                    verbose: Optional[bool] = None) -> CreatePersonaModel:
     """Generate random persona for persona_config.yaml"""
@@ -27,7 +28,6 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
             languages, k=random.randint(0, min(3, len(languages))))
 
         return country, mother_language, second_languages
-
 
     def select_generation_age() -> tuple:
         """Pick generation and age."""
@@ -75,7 +75,6 @@ def create_persona(friend_invite: Optional[FriendInviteModel] = None,
                 second_languages = list(set(second_languages))
             else:
                 second_languages.append(friend_invite.common_language)
-
 
     also_speak_line = (f" You also speak {', '.join(second_languages)}."
                        if second_languages else '')

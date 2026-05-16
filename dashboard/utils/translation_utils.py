@@ -67,7 +67,6 @@ class StoryTranslator:
             logger.error(f"Translation error: {e}")
             return text
 
-
     def _split_text(self, text: str, chunk_size: int) -> list:
         """Split long text into chunks without breaking sentences."""
         words = text.split()
@@ -89,7 +88,6 @@ class StoryTranslator:
 
         return chunks
 
-
     def translate_story(self, story_data: dict,
                         target_lang: str = 'en') -> dict:
         """Translate entire story dictionary on-demand."""
@@ -102,7 +100,6 @@ class StoryTranslator:
         translated = apply_to_dict(story,
                                    self._translate_text,
                                    target_lang=target_lang)
-
 
         return translated
 

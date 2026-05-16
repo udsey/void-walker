@@ -13,7 +13,6 @@ from dashboard.styles import MOOD_COLORS, PLOTLY_LAYOUT
 dash.register_page(__name__, path="/mood")
 
 
-
 def layout():
 
     data = {name: fn() for name, fn in mood_map.items()}
@@ -37,14 +36,14 @@ def layout():
         r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
         return f"rgba({r},{g},{b},{alpha})"
 
-    link_colors = [hex_to_rgba(MOOD_COLORS.get(m, "#888888"))
-                for m in sankey_df["mood_before"]]
-
+    link_colors = [
+        hex_to_rgba(MOOD_COLORS.get(m, "#888888"))
+        for m in sankey_df["mood_before"]]
 
     sankey_fig = go.Figure(go.Sankey(
         node=dict(
             label=all_moods,
-            color= [MOOD_COLORS.get(m, "#888") for m in all_moods],
+            color=[MOOD_COLORS.get(m, "#888") for m in all_moods],
             pad=40,
             thickness=20,
         ),
@@ -66,7 +65,6 @@ def layout():
     )
     shift_fig.update_layout(**PLOTLY_LAYOUT)
 
-
     timeline_fig = px.bar(
         data["mood_over_actions"],
         x="action_n",
@@ -79,16 +77,12 @@ def layout():
     )
     timeline_fig.update_layout(**PLOTLY_LAYOUT)
 
-
     return html.Div([
+        dbc.Row([
+            dbc.Col(dcc.Graph(figure=sankey_fig), width=8),
+            dbc.Col(dcc.Graph(figure=shift_fig), width=4),
+        ], className="mb-4"),
 
-    dbc.Row([
-        dbc.Col(dcc.Graph(figure=sankey_fig), width=8),
-        dbc.Col(dcc.Graph(figure=shift_fig), width=4),
-    ], className="mb-4"),
-
-    dbc.Row([
-        dbc.Col(dcc.Graph(figure=timeline_fig), width=12),
-    ]),
-])
-
+        dbc.Row([
+            dbc.Col(dcc.Graph(figure=timeline_fig), width=12),
+        ])])

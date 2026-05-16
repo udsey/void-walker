@@ -19,6 +19,7 @@ except redis.exceptions.ConnectionError:
 
 app = FastAPI()
 
+
 def get_sessions() -> list:
     """Get published sessions."""
     if not redis_sync:
@@ -32,4 +33,3 @@ def get_redirect_url(session_id: str):
         return {"url": None}
     url = redis_sync.get(f"observer:session:{session_id}:url")
     return {"url": url.decode() if url else None}
-

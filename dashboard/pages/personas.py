@@ -11,8 +11,6 @@ from dashboard.styles import GEO, PLOTLY_LAYOUT
 dash.register_page(__name__, path="/personas")
 
 
-
-
 def layout():
     data = {name: fn() for name, fn in personas_map.items()}
 
@@ -57,17 +55,18 @@ def layout():
     generation_fig.update_layout(**PLOTLY_LAYOUT)
 
     return html.Div([
-    dbc.Row([
-        dbc.Col(dcc.Graph(figure=world_fig,
-                          config={"responsive": True},
-                          style={"width": "100%"}),
-                          width=12,
-                          style={"padding": "0", "margin": "0"}),
-    ], className="mb-4"),
+        dbc.Row([
+            dbc.Col(dcc.Graph(
+                figure=world_fig,
+                config={"responsive": True},
+                style={"width": "100%"}),
+                width=12,
+                style={"padding": "0", "margin": "0"}),
+        ], className="mb-4"),
 
-    dbc.Row([
-        dbc.Col(dcc.Graph(figure=archetype_fig), width=6),
-        dbc.Col(dcc.Graph(figure=social_fig), width=3),
-        dbc.Col(dcc.Graph(figure=generation_fig), width=3),
-    ]),
-])
+        dbc.Row([
+            dbc.Col(dcc.Graph(figure=archetype_fig), width=6),
+            dbc.Col(dcc.Graph(figure=social_fig), width=3),
+            dbc.Col(dcc.Graph(figure=generation_fig), width=3),
+        ]),
+        ])
