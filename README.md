@@ -1,5 +1,3 @@
-## Intro
-
 # void-walker
 
 <p align="center">
@@ -14,14 +12,26 @@
   <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff" alt="Docker">
 </p>
 
-**void-walker** is an autonomous multi-agent system that generates persistent personas to explore and interact with [void-cast](https://github.com/udsey/void-cast).
+**void-walker** is an autonomous multi-agent system that generates persistent personas to explore and interact with void-cast.
 
-Each walker enters the void with its own identity, mood, memories, and behavioral tendencies. It navigates the website, reacts to messages, reflects on experiences, invites other agents, and gradually develops emergent narrative patterns — entirely through LLM-driven decisions.
+void-cast is an anonymous dark canvas where strangers leave floating messages. It's a separate project — you can find it [here](https://github.com/udsey/void-cast).
 
-See:
 
-* [Example session report](https://github.com/udsey/void-walker/blob/main/docs/session_c1dcb682.zip)
-* [Example generated story](https://github.com/udsey/void-walker/blob/main/docs/story_c1dcb682.pdf)
+Each walker enters the void with its own identity, mood, memories, and behavioral
+tendencies. It navigates the website, reacts to messages, reflects on experiences,
+invites other agents, and gradually develops emergent narrative patterns — entirely
+through LLM-driven decisions.
+
+Here's what that looks like:
+
+> Jennifer, 72, skeptic from Ohio — enters the void nostalgic, finds a stranger to trade
+> memories of mortars and mothers with, wonders if the void is just a porch where
+> people rest their stories for a while. → [Read](docs/story_d9c67dfa.pdf)
+
+> Margaret, 33, trickster from Russia — invited by Jennifer, immediately wants to
+> break everything, fills the silence with a hedgehog named Boris who plays balalaika.
+> Same void, completely different person. → [Read](docs/story_91c4dcc8.pdf)
+
 
 ---
 
@@ -44,7 +54,7 @@ cp .env.example .env
 Fill in your API keys and database settings:
 
 ```env
-# LLM provider (set in config.yaml)
+# LLM provider (set in configs/config.yaml)
 # local | groq | gemini | deepseek
 
 GROQ_API_KEY=
@@ -64,6 +74,8 @@ LIBRE_API_KEY=
 # Retention policy
 ACTIONS_LIMIT=10000
 ```
+
+Then open `configs/config.yaml` and set your provider and model name before running.
 
 ---
 
@@ -187,7 +199,7 @@ Each session spawns a persistent persona with randomized identity, behavior, and
 | Name                | Country- and gender-aware generated names                  |
 
 Personas are injected into every LLM call through a dynamic system prompt.
-The model never receives archetype labels directly — only behavioral descriptions Mood evolves during the run through reflection nodes.
+The model never receives archetype labels directly — only behavioral descriptions. Mood evolves during the run through reflection nodes.
 
 Friend sessions generate separate personas with shared-language constraints, allowing walkers to organically form multilingual interactions.
 
@@ -302,8 +314,8 @@ Data is written in a single batch after the session finishes, preserving full ex
 
 Main behavior is controlled through two files:
 
-* `config.yaml` — runtime, LLM, and walker settings
-* `persona_config.yaml` — persona generation rules
+* `configs/config.yaml` — runtime, LLM, and walker settings
+* `configs/persona_config.yaml` — persona generation rules
 
 ### `config.yaml`
 
@@ -332,25 +344,6 @@ Customize:
 All persona generation is data-driven — new archetypes, moods, or countries can be added without changing code.
 ---
 
-## Tech Stack
-
-* **LLM orchestration:** [LangChain](https://www.langchain.com/?utm_source=chatgpt.com) + [LangGraph](https://www.langchain.com/langgraph?utm_source=chatgpt.com)
-* **Backend:** [FastAPI](https://fastapi.tiangolo.com/?utm_source=chatgpt.com)
-* **Browser automation:** [Selenium](https://www.selenium.dev/?utm_source=chatgpt.com) + Chromium
-* **Dashboard:** [Plotly Dash](https://plotly.com/dash/?utm_source=chatgpt.com)
-* **Database:** [PostgreSQL](https://www.postgresql.org/?utm_source=chatgpt.com)
-* **Caching / coordination:** [Redis](https://redis.io/?utm_source=chatgpt.com)
-* **Containerization:** [Docker](https://www.docker.com/?utm_source=chatgpt.com)
-* **Validation & models:** [Pydantic](https://docs.pydantic.dev/latest/?utm_source=chatgpt.com)
-
-Supported providers:
-
-* Ollama (local)
-* Groq
-* Gemini
-* DeepSeek
-
----
 ## Tech Stack
 
 * **LLM orchestration:** [LangChain](https://www.langchain.com/?utm_source=chatgpt.com) + [LangGraph](https://www.langchain.com/langgraph?utm_source=chatgpt.com)
