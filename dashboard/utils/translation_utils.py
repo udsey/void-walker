@@ -1,7 +1,7 @@
 """On-demand story translation."""
-
 import copy
 import logging
+import os
 from typing import Any
 
 from deep_translator import LibreTranslator
@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+ENV = os.getenv('ENV')
 
 
 def apply_to_dict(obj, func, *args, **kwargs) -> Any:
@@ -34,26 +35,20 @@ class StoryTranslator:
     def _connect(self) -> None:
         """Connect to LibreTranslate service."""
         try:
+            custom_url = ('http://localhost:5000/' if ENV == 'local'
+                          else 'http://libretranslate:5000/')
+
             self.translator = LibreTranslator(
-                custom_url='http://libretranslate:5000/',
+                custom_url=custom_url,
                 source='auto',
                 target='en'
             )
             self.translator.translate("test text")
 
             logger.info("Successfully connected to LibreTranslate service")
-        except Exception:
-            try:
-                self.translator = LibreTranslator(
-                    custom_url='http://localhost:5000/',
-                    source='auto',
-                    target='en'
-                )
-                self.translator.translate("test text")
-                logger.info("Successfully connected to LibreTranslate service")
-            except Exception as e:
-                self.translator = None
-                logger.error(f"Failed to connect to LibreTranslate: {e}")
+        except Exception as e:
+            self.translator = None
+            logger.error(f"Failed to connect to LibreTranslate: {e}")
 
     def _translate_text(self, text: str, target_lang: str = 'en') -> str:
         """Translate a single text string."""
@@ -71,7 +66,6 @@ class StoryTranslator:
         except Exception as e:
             logger.error(f"Translation error: {e}")
             return text
-
 
     def _split_text(self, text: str, chunk_size: int) -> list:
         """Split long text into chunks without breaking sentences."""
@@ -94,7 +88,6 @@ class StoryTranslator:
 
         return chunks
 
-
     def translate_story(self, story_data: dict,
                         target_lang: str = 'en') -> dict:
         """Translate entire story dictionary on-demand."""
@@ -107,7 +100,6 @@ class StoryTranslator:
         translated = apply_to_dict(story,
                                    self._translate_text,
                                    target_lang=target_lang)
-
 
         return translated
 

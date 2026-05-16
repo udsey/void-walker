@@ -26,11 +26,24 @@ from src.models import (
     ToolOutputModel,
     YesNoModel,
 )
-from src.selenium.helpers import close_browser, configure_chrome, open_site
+from src.selenium.helpers import (
+    close_browser,
+    configure_chrome,
+    open_site,
+    read_visible_messages,
+)
 from src.setup import config, lessons_config, persona_config
 from src.walker.persona import create_persona
 from src.walker.tools import WalkerTools
-from src.walker.utils import create_map, load_llm, register
+from src.walker.utils import (
+    create_map,
+    load_llm,
+    publish_current_url,
+    publish_session,
+    publish_state,
+    register,
+    remove_session,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +59,6 @@ _threads_lock = threading.Lock()
 
 class VoidWalker():
     """Void Walker."""
-
     def __init__(self,
                  friend_invite: Optional[FriendInviteModel] = None,
                  ) -> None:
@@ -66,29 +78,23 @@ class VoidWalker():
 
         self.moods = persona_config.moods
 
-
         self.session_id = uuid.uuid1().hex
 
         # Initialize DB writer with pool
         self.db = DatabaseWriter()
         self.db.init_pool()
 
-
-
         self.persona = create_persona(friend_invite=friend_invite,
                                       verbose=self.verbose)
-
 
         self.llm = llm.bind_tools(tools=self.tools)
         self.node_map = create_map(self, "node")
         self.router_map = create_map(self, "router")
         self.build_graph()
 
-
     def __str__(self) -> str:
         """Define print style."""
         return str(self.state)
-
 
     def _make_tools(self) -> List[StructuredTool]:
         """Create structured tools."""
@@ -104,7 +110,6 @@ class VoidWalker():
             for name, fn in tool_map.items()
         ]
 
-
     def call_llm(self,
                  message: str,
                  output_schema: BaseModel = None) -> AIMessage | BaseModel:
@@ -118,7 +123,6 @@ class VoidWalker():
                if output_schema
                else self.llm)
         return llm.invoke(messages)
-
 
     def inspect_available(
             self,
@@ -156,7 +160,6 @@ class VoidWalker():
             p = ', '.join(params)
             logger.info(f"\t— router: {key}, function: {val.__name__}({p})")
 
-
     def display_graph(self) -> None:
         """Draw VoidWalker's graph."""
         mermaid_text = self.graph.get_graph().draw_mermaid()
@@ -174,7 +177,6 @@ class VoidWalker():
                                 text=True)
         logger.info(result.stdout)
 
-
     def _add_nodes(self) -> None:
         """Add nodes to builder."""
         for name, func in self.node_map.items():
@@ -182,14 +184,14 @@ class VoidWalker():
         if self.verbose:
             self.inspect_available()
 
-
     def walk(self) -> None:
         """Invoke graph."""
         if not _total_walkers.acquire(blocking=False):
             logger.info(
                 f"Walker limit reached, {self.persona.name} won't walk.")
             return
-
+        model_name = "/".join([config.llm_config.model_type,
+                               config.llm_config.model_name])
         invoke_input = {
                 "session_id": self.session_id,
                 "start_time": datetime.now(),
@@ -199,8 +201,7 @@ class VoidWalker():
                 "initial_url": self.persona.url,
                 "current_url": self.persona.url,
                 "name": self.persona.name,
-                "model_name":
-            f"{config.llm_config.model_type}/{config.llm_config.model_name}",
+                "model_name": model_name,
                 "model_temperature": config.llm_config.temperature
             }
         if self.friend_invite:
@@ -210,7 +211,11 @@ class VoidWalker():
             logger.info(f"Start walker with session_id: {self.session_id[:8]}")
             _active_walkers.acquire()
             try:
+                publish_session(session_id=self.session_id)
+                publish_current_url(session_id=self.session_id,
+                                    current_url=self.persona.url)
                 response = self.graph.invoke(input=invoke_input)
+                remove_session(session_id=self.session_id)
                 self.state = AgentState(**response)
                 self.log_persona()
                 self.db.flush(self.state)
@@ -221,19 +226,30 @@ class VoidWalker():
         finally:
             _total_walkers.release()
 
-
-    def to_reflection_context(self, action: ActionModel) -> str:
+    def to_reflection_context(self,
+                              state: AgentState) -> str:
         """Create reflection context."""
-        lines = [f"You performed action: {action.name}"]
-        if action.llm_prompt:
-            lines.append(f"You considered: {action.llm_prompt}")
-        if action.llm_response:
-            lines.append(f"You decided: {action.llm_response.answer}")
-            lines.append(f"Your reasoning: {action.llm_response.reason}")
-        if action.function_result:
-            lines.append(f"What happened: {action.function_result} ")
-        return "\n".join(lines)
+        last_action = state.actions[-1]
+        name = last_action.name
+        message = None
+        if name in {"respond_to_message", "send_message"}:
+            m = state.sent_messages[-1]
+            message = (
+                f'(reply to: {m.reply_to}\nmessage: "{m.message}")'
+                if m.reply_to else
+                f'(message: "{m.message})"\n')
 
+        lines = [f"You performed action: {last_action.name}"]
+        if message:
+            lines.append(f"You wrote: {message}")
+        if last_action.llm_prompt:
+            lines.append(f"You considered: {last_action.llm_prompt}")
+        if last_action.llm_response:
+            lines.append(f"You decided: {last_action.llm_response.answer}")
+            lines.append(f"Your reasoning: {last_action.llm_response.reason}")
+        if last_action.function_result:
+            lines.append(f"What happened: {last_action.function_result} ")
+        return "\n".join(lines)
 
     def to_lesson(self, tool_name: str, tool_output: ToolOutputModel) -> set:
         """Add lesson based on tool result."""
@@ -256,52 +272,51 @@ class VoidWalker():
                 lessons.add(lessons_config[error])
         return lessons
 
-
     def log_reflection(self, state: StateGraph, action: ActionModel) -> None:
         """Add reflection to db queue."""
         self.db.add("reflections", {
-                "timestamp": datetime.now(),
-                "action_name": state.actions[-1].name,
-                "mood_before": state.mood,
-                "mood_after": action.llm_response.mood or state.mood,
-                "reflection": action.llm_response.reflection
-            })
-
+                    "timestamp": datetime.now(),
+                    "action_name": state.actions[-1].name,
+                    "mood_before": state.mood,
+                    "mood_after": action.llm_response.mood or state.mood,
+                    "reflection": action.llm_response.reflection
+                    })
 
     def log_action(self, action: ActionModel) -> None:
         """Add action to db queue."""
         if action.name == "reflect":
             self.db.add("actions", {
-            "name": action.name,
-            "timestamp": datetime.now(),
-            "llm_prompt": action.llm_prompt,
-            "llm_answer": action.llm_response.mood,
-            "llm_reason": action.llm_response.reflection,
-            "function_result": action.function_result
-        })
+                "name": action.name,
+                "timestamp": datetime.now(),
+                "llm_prompt": action.llm_prompt,
+                "llm_answer": action.llm_response.mood,
+                "llm_reason": action.llm_response.reflection,
+                "function_result": action.function_result
+                })
 
         elif action.name == 'select_action':
             self.db.add("actions", {
-            "name": action.name,
-            "timestamp": datetime.now(),
-            "llm_prompt": action.llm_prompt,
-            "llm_answer": action.llm_response.content,
-            "llm_reason": None,
-            "function_result": action.function_result
-        })
+                "name": action.name,
+                "timestamp": datetime.now(),
+                "llm_prompt": action.llm_prompt,
+                "llm_answer": action.llm_response.content,
+                "llm_reason": None,
+                "function_result": action.function_result
+                })
 
         else:
             self.db.add("actions", {
-            "name": action.name,
-            "timestamp": datetime.now(),
-            "llm_prompt": action.llm_prompt,
-            "llm_answer": (action.llm_response.answer if action.llm_response
-                           else None),
-            "llm_reason": (action.llm_response.reason if action.llm_response
-                           else None),
-            "function_result": action.function_result
-        })
-
+                "name": action.name,
+                "timestamp": datetime.now(),
+                "llm_prompt": action.llm_prompt,
+                "llm_answer": (action.llm_response.answer
+                               if action.llm_response
+                               else None),
+                "llm_reason": (action.llm_response.reason
+                               if action.llm_response
+                               else None),
+                "function_result": action.function_result
+                })
 
     def log_persona(self) -> None:
         """Add persona to db queue."""
@@ -322,8 +337,7 @@ class VoidWalker():
             "mood": self.persona.mood,
             "is_friend": self.persona.is_friend,
             "system_prompt": self.persona.system_prompt
-    })
-
+            })
 
     def log_tool(self, tool_output) -> None:
         """Add tool to db queue."""
@@ -348,21 +362,22 @@ class VoidWalker():
                     tool_output.friend_invite.friend_session_id
             })
         elif tool_output.message:
-            self.db.add("messages", {
-                "timestamp": datetime.now(),
-                "message": tool_output.message,
-                "reply_to": tool_output.reply_to,
-                "tool_message": tool_output.tool_message,
-                "last_read_messages": tool_output.visible_messages,
-                "is_sent":
-    tool_output.tool_message == config.status_config.send_message.on_success
-            })
+            self.db.add(
+                "messages",
+                {
+                    "timestamp": datetime.now(),
+                    "message": tool_output.message,
+                    "reply_to": tool_output.reply_to,
+                    "tool_message": tool_output.tool_message,
+                    "last_read_messages": tool_output.visible_messages,
+                    "is_sent": (tool_output.tool_message ==
+                                config.status_config.send_message.on_success)
+                                })
 
     @register(_type="router", _name="boolean_router")
     def true_false_router(self, state: AgentState) -> bool:
         """Router for True/False decisions."""
         return state.actions[-1].llm_response.answer
-
 
     @register(_type="router", _name="tool_router")
     def tool_router(self, state: AgentState) -> str:
@@ -371,19 +386,18 @@ class VoidWalker():
             return "execute_tool"
         return "close_website"
 
-
     @register(_type="router", _name="post_action_router")
     def post_action_router(self, state: AgentState) -> str:
         if state.exit_reason is not None:
             return "close_website"
         return "reflect"
 
-
     @register(_type="node", _name="decide_open_website")
     def decide_open_node(self, state: AgentState) -> dict:
         """Conditional node for site opening."""
         action = ActionModel(name=self.decide_open_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         if state.is_friend:
             message = (
@@ -407,37 +421,40 @@ class VoidWalker():
         else:
             return {"actions": action}
 
-
     @register(_type="node", _name="initialize_tools")
     def initialize_tools_node(self, state: AgentState) -> dict:
         """Node to initialize browser and llm tools."""
         action = ActionModel(name=self.initialize_tools_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
         self.driver, self.wait = configure_chrome()
         self.tools = self._make_tools()
         self.llm = llm.bind_tools(tools=self.tools)
         return {"actions": action}
-
 
     @register(_type="node", _name="open_website")
     def open_site_node(self, state: AgentState) -> dict:
         """Node to open website."""
         action = ActionModel(name=self.open_site_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
         action.function_result = open_site(driver=self.driver,
                                            wait=self.wait,
                                            url=state.initial_url)
         self.log_action(action)
         return {
-            "actions": action
+            "actions": action,
+            "last_read_messages": read_visible_messages(self.driver)
         }
-
 
     @register(_type="node", _name="close_website")
     def close_website_node(self, state: AgentState) -> dict:
         """Node to close website and browser."""
         action = ActionModel(name=self.close_website_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         action.function_result = close_browser(driver=self.driver)
         self.log_action(action)
@@ -451,12 +468,12 @@ class VoidWalker():
             "exit_reason": exit_reason
         }
 
-
     @register(_type="node", _name="observe_website")
     def observe_site_node(self, state: AgentState) -> dict:
         """Node to give Walker context about website."""
         action = ActionModel(name=self.observe_site_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         message = (
             "You just opened void-cast. "
@@ -476,60 +493,61 @@ class VoidWalker():
             "actions": action
         }
 
-
     @register(_type="node", _name="reflect")
     def reflect_node(self, state: AgentState) -> dict:
-            """Reflection node where Walker can change it's mood."""
-            action = ActionModel(name=self.reflect_node._name,
-                                 timestamp=datetime.now())
+        """Reflection node where Walker can change it's mood."""
+        action = ActionModel(name=self.reflect_node._name,
+                             timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+        last_action = self.to_reflection_context(state)
 
-            last_action = self.to_reflection_context(state.actions[-1])
+        message = ""
+        if state.reflection:
+            message = f"Previous thoughts: {state.reflection}. "
 
-            message = ""
-            if state.reflection:
-                message = f"Previous thoughts: {state.reflection}. "
+        message += (
+            f"Current mood: {state.mood}.\n{last_action}\n"
+            "Reflect on what just happened in your persona's voice. "
+            "Update your internal monologue. "
+            "If your mood shifted, note the new mood. "
+            f"Choose from: {self.moods}")
 
-            message += (
-                f"Current mood: {state.mood}.\n{last_action}\n"
-                "Reflect on what just happened in your persona's voice. "
-                "Update your internal monologue. "
-                "If your mood shifted, note the new mood. "
-                f"Choose from: {self.moods}")
+        response = self.call_llm(message=message,
+                                 output_schema=ReflectionModel)
 
-            response = self.call_llm(message=message,
-                                     output_schema=ReflectionModel)
+        action.llm_prompt = message
+        action.llm_response = response
 
-            action.llm_prompt = message
-            action.llm_response = response
+        self.log_reflection(state, action)
+        self.log_action(action)
 
-            self.log_reflection(state, action)
-            self.log_action(action)
-
-            return {
-                "actions": action,
-                "reflection": response.reflection,
-                "mood": response.mood or state.mood
-                }
-
+        return {
+            "actions": action,
+            "reflection": response.reflection,
+            "mood": response.mood or state.mood
+            }
 
     @register(_type="node", _name="select_action")
     def select_action_node(self, state: AgentState) -> dict:
         """Select next tool/action node."""
         action = ActionModel(name=self.select_action_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
 
         EXCLUDED = {'reflect', 'select_action',
                     'initialize_tools', 'decide_open_website'}
         action_names = [
             a.name for a in state.actions if a.name not in EXCLUDED]
-        action_history = f"Action history: {action_names}\n"
 
         recent = action_names[-10:]
         counts = {}
         for name in recent:
             counts[name] = counts.get(name, 0) + 1
 
-        msgs = '; '.join([f'"{m.message}"' for m in state.sent_messages])
+        msgs = '; '.join([
+            f'(reply to: {m.reply_to}\nmessage: "{m.message}")' if m.reply_to
+            else f'(message: "{m.message})"\n'
+            for m in state.sent_messages])
         friends = ', '.join([
             invite.friends_name for invite in state.invited_friends])
 
@@ -542,20 +560,25 @@ class VoidWalker():
                     "Try something different.") if warnings else ""
 
         lessons = "\n".join(state.learned_lessons)
+        friend = (
+            ("Friend that invited you:"
+             f"{self.persona.friend_name} - {self.persona.friend_message}\n")
+            if state.is_friend
+            else "")
         message = (
             "LESSONS YOU'VE LEARNED:\n\n"
             f"{lessons}"
             "CURRENT STATE:\n\n"
-            f"- Action history: [{action_history}]\n"
+            f"- Action history: [{action_names}]\n"
             f"- Messages you can see: {state.last_read_messages}\n"
             f"- Messages you've sent: [{msgs}]\n"
             f"- Windows you've opened: {state.opened_windows}\n"
             f"- Friends you've invited: {friends}\n"
+            f"{friend}"
             f"- Current reflection: {state.reflection}\n\n"
             "Decide what to do next.")
 
         message += warnings
-
 
         response = self.call_llm(message=message)
         action.llm_prompt = message
@@ -565,17 +588,17 @@ class VoidWalker():
 
         return {"actions": action}
 
-
     @register(_type="node", _name="check_conditions")
     def check_conditions_node(self, state: AgentState) -> dict:
         """Node to check exit conditions."""
         action = ActionModel(name=self.check_conditions_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
         elapsed = datetime.now() - state.start_time
         n_actions = len(state.actions)
         self.log_action(action)
-        if n_actions % 10 < 2:
-            logger.info(
+        logger.info(
                 f"{self.actions_limit - n_actions} till action limit for "
                 f"walker {self.session_id[:8]}.")
         if n_actions > self.actions_limit:
@@ -584,7 +607,6 @@ class VoidWalker():
             return {"exit_reason": "time limit"}
         else:
             return {}
-
 
     @register(_type="node", _name="execute_tool")
     def execute_tool_node(self, state: AgentState) -> dict:
@@ -598,14 +620,20 @@ class VoidWalker():
 
         tool_output = ToolOutputModel.model_validate_json(tool_output)
 
-        action = ActionModel(name=tool_call['name'],
-                            timestamp=datetime.now(),
-                            function_result=tool_output.tool_message)
+        action = ActionModel(
+            name=tool_call['name'],
+            timestamp=datetime.now(),
+            function_result=tool_output.tool_message)
+
+        publish_state(session_id=state.session_id, state=state)
+        publish_current_url(
+            session_id=self.session_id,
+            current_url=tool_output.current_url or state.current_url)
 
         if (
             tool_output.friend_invite
-            and not state.is_friend
-            and len(state.invited_friends) < self.friends_limit):
+                and not state.is_friend
+                and len(state.invited_friends) < self.friends_limit):
 
             tool_output.friend_invite.name = state.name
             tool_output.friend_invite.session_id = state.session_id
@@ -619,8 +647,6 @@ class VoidWalker():
             with _threads_lock:
                 _all_threads.append(thread)
             thread.start()
-
-
 
         self.log_tool(tool_output=tool_output)
         self.log_action(action)
@@ -636,20 +662,25 @@ class VoidWalker():
                                                   tool_output=tool_output)
                 }
 
-
     @register(_type="node", _name="summarize")
     def summarize_node(self, state: AgentState) -> dict:
         """Summarize on exit node."""
         action = ActionModel(name=self.summarize_node._name,
                              timestamp=datetime.now())
+        publish_state(session_id=state.session_id, state=state)
+
         invited_friends = [f.friends_name for f in state.invited_friends]
 
-        skip_actions = {"summarize",
-                        "initialize_tools",
-                        'select_action',
-                        'reflect',
-                        'check_conditions'}
-        actions = [a.name for a in state.actions if a.name not in skip_actions]
+        tool_actions = {
+            "send_message",
+            "respond_to_message",
+            "press_explore",
+            "move_around",
+            "open_window",
+            "send_feedback",
+            "invite_friend"
+            }
+        actions = [a.name for a in state.actions if a.name in tool_actions]
         actions = ', '.join([f"{k} ({v}x)"
                              for k, v in Counter(actions).items()])
         last_action = state.actions[-1]
@@ -695,17 +726,17 @@ class VoidWalker():
             "summary": response.answer
         }
 
-
     def build_graph(self) -> None:
         """Build graph."""
         self.builder = StateGraph(AgentState)
         self._add_nodes()
 
         self.builder.set_entry_point("decide_open_website")
-        self.builder.add_conditional_edges("decide_open_website",
-                                      self.true_false_router, {
-                                          True: "initialize_tools",
-                                          False: "summarize"})
+        self.builder.add_conditional_edges(
+            "decide_open_website",
+            self.true_false_router, {
+                True: "initialize_tools",
+                False: "summarize"})
         self.builder.add_edge("initialize_tools", "open_website")
         self.builder.add_edge("open_website", "observe_website")
         self.builder.add_edge("observe_website", "reflect")
@@ -729,5 +760,3 @@ class VoidWalker():
 
         if self.verbose:
             self.display_graph()
-
-

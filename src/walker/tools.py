@@ -17,23 +17,21 @@ class WalkerTools:
     def __init__(self, driver) -> None:
         self.driver = driver
 
-
     @register(_type="tool", _name="send_message")
     def send_message(
         self,
-        message: Annotated[str,
-                           "The message you want to send to the void."]
-        ) -> ToolOutputModel:
-            """Cast a message into the void.
-            Write something true to your persona, mood,
-            and what you've observed. Keep it short and human."""
-            tool_output = ToolOutputModel()
-            tool_output.visible_messages = read_visible_messages(self.driver)
-            tool_output.tool_message = send_message(self.driver, message)
-            tool_output.message = message
+        message: Annotated[str, "The message you want to send to the void."]
+            ) -> ToolOutputModel:
+        """Cast a message into the void.
+        Write something true to your persona, mood,
+        and what you've observed. Keep it short and human."""
+        tool_output = ToolOutputModel()
+        tool_output.visible_messages = read_visible_messages(self.driver)
+        tool_output.tool_message = send_message(self.driver,
+                                                message.strip())
+        tool_output.message = message
 
-            return tool_output.model_dump_json()
-
+        return tool_output.model_dump_json()
 
     @register(_type="tool", _name="respond_to_message")
     def respond_to_message(
@@ -50,11 +48,9 @@ class WalkerTools:
         tool_output.reply_to = reply_to
         tool_output.message = reply
         tool_output.visible_messages = read_visible_messages(self.driver)
-        tool_output.tool_message = send_message(self.driver, reply)
-
+        tool_output.tool_message = send_message(self.driver, reply.strip())
 
         return tool_output.model_dump_json()
-
 
     @register(_type="tool", _name="press_explore")
     def explore(self) -> str:
@@ -65,7 +61,6 @@ class WalkerTools:
         tool_output.visible_messages = read_visible_messages(self.driver)
         tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
-
 
     @register(_type="tool", _name="move_around")
     def move(
@@ -85,7 +80,6 @@ class WalkerTools:
         tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
 
-
     @register(_type="tool", _name="open_window")
     def open_window(
         self,
@@ -101,7 +95,6 @@ class WalkerTools:
         tool_output.visible_messages = read_visible_messages(self.driver)
 
         return tool_output.model_dump_json()
-
 
     @register(_type="tool", _name="send_feedback")
     def send_feedback(
@@ -121,20 +114,18 @@ class WalkerTools:
 
         return tool_output.model_dump_json()
 
-
     @register(_type="tool", _name="invite_friend")
     def invite_friend(
         self,
         friends_name: Annotated[
             str,
             ("Name of someone you know. "
-            "Can be real or made up—just pick any name.")],
+             "Can be real or made up—just pick any name.")],
         message: Annotated[
             str,
             "What you'd say to get them to join you here."]
             ) -> str:
-        """Call out to someone you know.
-        Even if they're not really there, the act of calling feels good."""
+        """Call out to someone you know to join The Void."""
         url = press_share(self.driver)
         invite = FriendInviteModel(
             shared_url=url,
@@ -147,19 +138,5 @@ class WalkerTools:
         tool_output.visible_messages = read_visible_messages(self.driver)
         tool_output.friend_invite = invite
         tool_output.current_url = url
-
-        return tool_output.model_dump_json()
-
-
-    @register(_type="tool", _name="check_new_messages")
-    def check_new_messages(self) -> str:
-        """
-        Look around and read any messages currently visible in the void.
-        If you've already checked and seen nothing new,
-        do something else instead."""
-        tool_output = ToolOutputModel()
-        messages = read_visible_messages(self.driver)
-        tool_output.visible_messages = messages
-        tool_output.tool_message = "You look around the void"
 
         return tool_output.model_dump_json()

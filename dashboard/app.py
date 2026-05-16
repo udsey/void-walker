@@ -17,11 +17,12 @@ app.layout = dbc.Container([
     dbc.NavbarSimple(
         children=[
             dbc.NavItem(dbc.NavLink("Overview", href="/")),
-            dbc.NavItem(dbc.NavLink("Session", href="/session")),
             dbc.NavItem(dbc.NavLink("Personas", href="/personas")),
             dbc.NavItem(dbc.NavLink("Mood", href="/mood")),
-            dbc.NavItem(dbc.NavLink("Story", href="/story")),
             dbc.NavItem(dbc.NavLink("Raw Tables", href="/tables")),
+            dbc.NavItem(dbc.NavLink("Monitor", href="/monitor")),
+            dbc.NavItem(dbc.NavLink("Session", href="/session")),
+            dbc.NavItem(dbc.NavLink("Story", href="/story")),
         ],
         brand="void-walker",
         color="dark",

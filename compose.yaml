@@ -31,6 +31,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
+      ENV: docker
     depends_on:
       db:
         condition: service_healthy
@@ -63,6 +64,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
+      ENV: docker
     ports:
       - "8050:8050"
     depends_on:
@@ -70,6 +72,11 @@ services:
         condition: service_healthy
       libretranslate:
         condition: service_started
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
 
 volumes:
   pgdata:

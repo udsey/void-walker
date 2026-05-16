@@ -2,7 +2,7 @@
 
 import textwrap
 from datetime import datetime
-from typing import Annotated, List, Literal, Optional, Union
+from typing import Annotated, Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -121,54 +121,65 @@ class CreatePersonaModel(BaseModel):
 
 class YesNoModel(BaseModel):
     """LLM Answer model for binary questions."""
-    answer: bool = Field(
+    answer: Optional[bool] = Field(
         description="Decision: true to proceed, false to decline")
-    reason: str = Field(description="Please explain your decision")
+    reason: Optional[str] = Field(
+        description="Please explain your decision")
 
     def __str__(self) -> str:
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
 
 class AnswerModel(BaseModel):
     """Basic LLM Answer model."""
-    answer: str = Field(description="The answer or decision made")
-    reason: str = Field(description="The reasoning behind the answer")
+    answer: Optional[str] = Field(
+        description="The answer or decision made")
+    reason: Optional[str] = Field(
+        description="The reasoning behind the answer")
 
     def __str__(self) -> str:
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+
 class SummaryModel(BaseModel):
     """Summary model for end-of-session reflection."""
-    answer: str = Field(
-description="Your complete summary of your time in the void (3-5 sentences)")
-    reason: str = Field(
+    answer: Optional[str] = Field(
+        description="Your complete summary of your time in the void")
+    reason: Optional[str] = Field(
         description="One sentence on what prompted you to write this summary")
 
     def __str__(self) -> str:
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
+
 class SelectToolModel(BaseModel):
     """LLM Answer model for tool selection."""
-    answer: str = Field(description="Next action:")
-    reason: str = Field(description="The reasoning behind the answer")
+    answer: Optional[str] = Field(
+        description="Next action:")
+    reason: Optional[str] = Field(
+        description="The reasoning behind the answer")
 
     def __str__(self) -> str:
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
 
 class ReflectionModel(BaseModel):
     """LLM Answer model for reflection node."""
-    reflection: str = Field(
+    reflection: Optional[str] = Field(
         description=(
             "Your inner monologue after the action, "
             "written in your persona's voice"))
-    mood: str = Field(description="Your current mood after reflecting")
+    mood: Optional[str] = Field(
+        description="Your current mood after reflecting")
 
     def __str__(self) -> str:
         space = " " * 14
         return f"\n{space}".join(f"{k}: {v}" for k, v in self.__dict__.items())
+
 
 class GenderPrediction(BaseModel):
     """Predicted gender from a given name."""
@@ -179,13 +190,13 @@ class GenderPrediction(BaseModel):
 
 # ~~~~~~~~~~~~~~~~~~ State attributes ~~~~~~~~~~~~~~~~~~
 
+
 class ActionModel(BaseModel):
     """Action model for graph."""
     name: str
     timestamp: datetime
     llm_prompt: Optional[str] = None
-    llm_response: Optional[
-        Union[YesNoModel, AnswerModel, ReflectionModel, SummaryModel]] = None
+    llm_response: Optional[Any] = None
     function_result: Optional[str] = None
 
     def __str__(self) -> str:
@@ -230,6 +241,7 @@ def add_actions(
     if isinstance(right, list):
         return left + right
     return left + [right]
+
 
 def append_str(
         left: list[str],
@@ -290,12 +302,10 @@ class ToolOutputModel(BaseModel):
         return SentMessageModel(message=self.message,
                                 reply_to=self.reply_to)
 
-
     def to_friend_invite(self) -> FriendInviteModel | None:
         if not self.friend_invite:
             return None
         return self.friend_invite
-
 
 
 # ~~~~~~~~~~~~~~~~~~ Agent State ~~~~~~~~~~~~~~~~~~
@@ -355,7 +365,6 @@ class AgentState(BaseModel):
                 lines.append(f"{k}: {v}")
                 lines.append(separator)
         return "\n".join(lines)
-
 
     @field_validator('actions', mode='before')
     @classmethod

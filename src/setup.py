@@ -60,6 +60,7 @@ DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_NAME = os.getenv('DB_NAME')
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
+ENV = os.getenv("ENV")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -73,4 +74,3 @@ lessons_config = load_config_file(path)
 path = os.path.join(BASE_DIR, 'configs/config.yaml')
 config = load_config_file(path)
 config = ConfigModel(**config)
-

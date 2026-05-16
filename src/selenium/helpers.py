@@ -16,20 +16,18 @@ from src.setup import config
 logger = logging.getLogger(__name__)
 
 
-
 def configure_chrome() -> tuple[Chrome, WebDriverWait]:
     """Configure browser."""
     options = Options()
     options.add_experimental_option("prefs", {
-    "profile.content_settings.exceptions.clipboard": {
-        f"{config.root_url},*": {"last_modified": 1, "setting": 1}
-    }})
+        "profile.content_settings.exceptions.clipboard": {
+            f"{config.root_url},*": {"last_modified": 1, "setting": 1}
+            }})
+    options.add_argument("--window-size=1920,1080")
     if not config.walkers_config.verbose:
         options.add_argument("--headless=new")
-
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-
 
     try:
         driver = Chrome(service=Service(ChromeDriverManager().install()),
@@ -37,7 +35,7 @@ def configure_chrome() -> tuple[Chrome, WebDriverWait]:
     except Exception:
         options.binary_location = "/usr/bin/chromium"
         driver = Chrome(service=Service("/usr/bin/chromedriver"),
-                         options=options)
+                        options=options)
     wait = WebDriverWait(driver, config.wait_timeout)
     return driver, wait
 
