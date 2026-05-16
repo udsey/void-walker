@@ -263,10 +263,10 @@ classDef tool fill:#ddf0dd,line-height:1.2
 
 Core loop:
 
-1. observe environment,
-2. reflect internally,
-3. select and execute tool,
-5. repeat until exit conditions are reached.
+- observe environment,
+- reflect internally,
+- select and execute tool,
+- repeat until exit conditions are reached.
 
 ---
 
