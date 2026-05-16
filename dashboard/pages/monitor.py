@@ -76,7 +76,7 @@ def set_session_link(session_id):
 )
 def get_state(_, session_id: str) -> list:
     """Get current graph state."""
-    if not session_id:
+    if not redis_sync or not session_id:
         return dash.no_update, {"display": "none"}
     data = redis_sync.get(f"observer:session:{session_id}:graph")
     if not data:
@@ -88,6 +88,11 @@ def get_state(_, session_id: str) -> list:
         {"key": k,
          "value": str(v)} for k, v in data.items()]
     state_list.append(last_action)
+    state_list.append({
+        "key": "last_message",
+        "value": (
+            str(data["sent_messages"][-1]) if data["sent_messages"] else "")
+    })
     return state_list, {"display": "block"}
 
 

@@ -239,16 +239,30 @@ class VoidWalker():
             _total_walkers.release()
 
 
-    def to_reflection_context(self, action: ActionModel) -> str:
+    def to_reflection_context(self,
+                              state: AgentState) -> str:
         """Create reflection context."""
-        lines = [f"You performed action: {action.name}"]
-        if action.llm_prompt:
-            lines.append(f"You considered: {action.llm_prompt}")
-        if action.llm_response:
-            lines.append(f"You decided: {action.llm_response.answer}")
-            lines.append(f"Your reasoning: {action.llm_response.reason}")
-        if action.function_result:
-            lines.append(f"What happened: {action.function_result} ")
+        last_action = state.actions[-1]
+        name = last_action.name
+        message = None
+        if name in {"respond_to_message", "send_message"}:
+            m = state.sent_messages[-1]
+            message = (
+                f'(reply to: {m.reply_to}\nmessage: "{m.message}")'
+                    if m.reply_to else
+                f'(message: "{m.message})"\n')
+
+
+        lines = [f"You performed action: {last_action.name}"]
+        if message:
+            lines.append(f"You wrote: {message}")
+        if last_action.llm_prompt:
+            lines.append(f"You considered: {last_action.llm_prompt}")
+        if last_action.llm_response:
+            lines.append(f"You decided: {last_action.llm_response.answer}")
+            lines.append(f"Your reasoning: {last_action.llm_response.reason}")
+        if last_action.function_result:
+            lines.append(f"What happened: {last_action.function_result} ")
         return "\n".join(lines)
 
 
@@ -509,8 +523,7 @@ class VoidWalker():
             action = ActionModel(name=self.reflect_node._name,
                                  timestamp=datetime.now())
             publish_state(session_id=state.session_id, state=state)
-
-            last_action = self.to_reflection_context(state.actions[-1])
+            last_action = self.to_reflection_context(state)
 
             message = ""
             if state.reflection:
@@ -690,12 +703,16 @@ class VoidWalker():
 
         invited_friends = [f.friends_name for f in state.invited_friends]
 
-        skip_actions = {"summarize",
-                        "initialize_tools",
-                        'select_action',
-                        'reflect',
-                        'check_conditions'}
-        actions = [a.name for a in state.actions if a.name not in skip_actions]
+        tool_actions = {
+            "send_message",
+            "respond_to_message",
+            "press_explore",
+            "move_around",
+            "open_window",
+            "send_feedback",
+            "invite_friend"
+            }
+        actions = [a.name for a in state.actions if a.name in tool_actions]
         actions = ', '.join([f"{k} ({v}x)"
                              for k, v in Counter(actions).items()])
         last_action = state.actions[-1]

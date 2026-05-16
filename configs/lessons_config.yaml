@@ -7,6 +7,6 @@ move_around: "→ action 'move_around' changes your position. Small moves let yo
 invite_friend: "→ action 'invite_friend' might bring them to your exact location. But you never know if or when. They won't follow if you move"
 
 messages: "→ messages drift without names. Yours might linger where you left them — or they might be gone."
-message_char_limit: "→ the void won't accept messages over 300 characters."
+message_char_limit: "→ the void won't accept messages over 900 characters."
 message_frequency_limit: "→ when you send too many messages too quickly, the void asks you to pause."
 

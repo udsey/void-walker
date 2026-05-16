@@ -4,6 +4,7 @@ from src.models import FriendInviteModel, ToolOutputModel
 from src.selenium.helpers import (
     get_current_url,
     interact_with_modal,
+    move_around,
     press_explore,
     press_share,
     read_visible_messages,
@@ -66,7 +67,7 @@ class WalkerTools:
         tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
 
-    '''
+
     @register(_type="tool", _name="move_around")
     def move(
         self,
@@ -84,7 +85,7 @@ class WalkerTools:
         tool_output.visible_messages = read_visible_messages(self.driver)
         tool_output.current_url = get_current_url(self.driver)
         return tool_output.model_dump_json()
-    '''
+
 
     @register(_type="tool", _name="open_window")
     def open_window(
@@ -133,8 +134,7 @@ class WalkerTools:
             str,
             "What you'd say to get them to join you here."]
             ) -> str:
-        """Call out to someone you know.
-        Even if they're not really there, the act of calling feels good."""
+        """Call out to someone you know to join The Void."""
         url = press_share(self.driver)
         invite = FriendInviteModel(
             shared_url=url,

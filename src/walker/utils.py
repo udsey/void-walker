@@ -74,11 +74,19 @@ def create_map(target, _type: str) -> dict:
     return func_map
 
 host = 'localhost' if ENV == 'local' else 'redis'
-redis_sync = redis.Redis(host=host, port=6379, decode_responses=True)
+
+try:
+    redis_sync = redis.Redis(host=host, port=6379, decode_responses=True)
+    redis_sync.ping()
+except redis.exceptions.ConnectionError:
+    logger.info("Redis is not available, live monitoring will be disabled.")
+    redis_sync = None
 
 
 def publish_session(session_id: str) -> None:
     """Publish session."""
+    if not redis_sync:
+        return
     redis_sync.sadd("observer:sessions", session_id)
     redis_sync.expire("observer:sessions", 3600)
     redis_sync.publish("observer:sessions", session_id)
@@ -86,18 +94,24 @@ def publish_session(session_id: str) -> None:
 
 def remove_session(session_id: str) -> None:
     """Remove session from Redis."""
+    if not redis_sync:
+        return
     redis_sync.srem("observer:sessions", session_id)
 
 
 
 def publish_current_url(session_id: str, current_url: str) -> None:
     """Publish current url."""
+    if not redis_sync:
+        return
     redis_sync.setex(f"observer:session:{session_id}:url", 360, current_url)
     redis_sync.publish(f"observer:session:{session_id}", current_url)
 
 
 def publish_state(session_id: str, state: AgentState) -> None:
     """Publish graph state."""
+    if not redis_sync:
+        return
     state = state.model_dump_json()
     redis_sync.setex(f"observer:session:{session_id}:graph",
                      360, state)

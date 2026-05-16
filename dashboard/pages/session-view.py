@@ -21,7 +21,7 @@ layout = html.Div([
     prevent_initial_call=False
 )
 def follow_session(_, search):
-    if not search:
+    if not redis_sync or not search:
         return dash.no_update
     session_id = search.replace("?session_id=", "")
     url = redis_sync.get(f"observer:session:{session_id}:url")
